@@ -1,6 +1,8 @@
 import { Router } from "express";
+
 import AppError from "../errors/AppError.js";
 import catchAsync from "../middlewares/catchAsync.js";
+import authRoutes from "../modules/auth/auth.route.js";
 
 const router = Router();
 
@@ -20,5 +22,7 @@ router.get(
     throw new AppError(400, "This is a test error");
   }),
 );
+
+router.use("/auth", authRoutes);
 
 export default router;
