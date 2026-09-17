@@ -7,6 +7,7 @@ import departmentRoutes from "../modules/department/department.route.js";
 import studentRoutes from "../modules/student/student.route.js";
 import facultyRoutes from "../modules/faculty/faculty.route.js";
 import courseRoutes from "../modules/course/course.route.js";
+import enrollmentRoutes from "../modules/enrollment/enrollment.route.js";
 const router = Router();
 
 router.get("/health", (_req, res) => {
@@ -31,5 +32,6 @@ router.use("/departments", departmentRoutes);
 router.use("/students", studentRoutes);
 router.use("/faculties", facultyRoutes);
 router.use("/courses", courseRoutes);
+router.use("/enrollments", enrollmentRoutes);
 
 export default router;
