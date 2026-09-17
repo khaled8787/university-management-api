@@ -5,6 +5,7 @@ import catchAsync from "../middlewares/catchAsync.js";
 import authRoutes from "../modules/auth/auth.route.js";
 import departmentRoutes from "../modules/department/department.route.js";
 import studentRoutes from "../modules/student/student.route.js";
+import facultyRoutes from "../modules/faculty/faculty.route.js";
 const router = Router();
 
 router.get("/health", (_req, res) => {
@@ -27,5 +28,6 @@ router.get(
 router.use("/auth", authRoutes);
 router.use("/departments", departmentRoutes);
 router.use("/students", studentRoutes);
+router.use("/faculties", facultyRoutes);
 
 export default router;
