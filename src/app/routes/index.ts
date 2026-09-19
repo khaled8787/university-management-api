@@ -10,6 +10,8 @@ import courseRoutes from "../modules/course/course.route.js";
 import enrollmentRoutes from "../modules/enrollment/enrollment.route.js";
 import attendanceRoutes from "../modules/attendance/attendance.route.js";
 import resultRoutes from "../modules/result/result.route.js";
+import paymentRoutes from "../modules/payment/payment.route.js";
+
 const router = Router();
 
 router.get("/health", (_req, res) => {
@@ -37,5 +39,6 @@ router.use("/courses", courseRoutes);
 router.use("/enrollments", enrollmentRoutes);
 router.use("/attendances", attendanceRoutes);
 router.use("/results", resultRoutes);
+router.use("/payments", paymentRoutes);
 
 export default router;
