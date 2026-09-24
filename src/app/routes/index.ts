@@ -11,6 +11,7 @@ import enrollmentRoutes from "../modules/enrollment/enrollment.route.js";
 import attendanceRoutes from "../modules/attendance/attendance.route.js";
 import resultRoutes from "../modules/result/result.route.js";
 import paymentRoutes from "../modules/payment/payment.route.js";
+import auditLogRoutes from "../modules/auditLog/auditLog.route.js";
 
 const router = Router();
 
@@ -40,5 +41,6 @@ router.use("/enrollments", enrollmentRoutes);
 router.use("/attendances", attendanceRoutes);
 router.use("/results", resultRoutes);
 router.use("/payments", paymentRoutes);
+router.use("/audit-logs", auditLogRoutes);
 
 export default router;

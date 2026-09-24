@@ -4,17 +4,21 @@ import {
   authenticate,
   authorize,
 } from "../../middlewares/auth.js";
-
+import express from "express";
 import {
   cancelPaymentController,
   createPaymentController,
+  createStripeCheckoutController,
   getAdminPaymentByIdController,
   getAllPaymentsController,
   getMyPaymentByIdController,
   getMyPaymentsController,
+  stripeWebhookController,
 } from "./payment.controller.js";
 
 const router = Router();
+
+router.post("/stripe/webhook", stripeWebhookController);
 
 router.use(authenticate);
 
@@ -29,6 +33,12 @@ router.get(
   "/my",
   authorize("STUDENT"),
   getMyPaymentsController,
+);
+
+router.post(
+  "/:id/stripe-checkout",
+  authorize("STUDENT"),
+  createStripeCheckoutController,
 );
 
 router.get(

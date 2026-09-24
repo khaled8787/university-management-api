@@ -32,6 +32,14 @@ app.use(
   }),
 );
 
+// Important:
+// Stripe webhook must receive the raw request body.
+// This route must be registered before express.json().
+app.use(
+  "/api/v1/payments/stripe/webhook",
+  express.raw({ type: "application/json" }),
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

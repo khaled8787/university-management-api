@@ -88,3 +88,58 @@ export const refreshTokenValidationSchema = z.object({
 
 export type RegisterInput = z.infer<typeof registerValidationSchema>;
 export type LoginInput = z.infer<typeof loginValidationSchema>;
+
+export const googleLoginValidationSchema = z.object({
+  idToken: z.string().min(1, "Firebase ID token is required"),
+
+  role: z
+    .enum(["STUDENT", "FACULTY"])
+    .optional(),
+
+  studentId: z.string().trim().optional(),
+
+  employeeId: z.string().trim().optional(),
+
+  departmentId: z.string().trim().optional(),
+
+  semester: z
+    .number()
+    .int()
+    .min(1)
+    .max(20)
+    .optional(),
+
+  batch: z
+    .string()
+    .trim()
+    .max(50)
+    .optional(),
+
+  phone: z
+    .string()
+    .trim()
+    .max(20)
+    .optional(),
+
+  address: z
+    .string()
+    .trim()
+    .max(300)
+    .optional(),
+
+  designation: z
+    .string()
+    .trim()
+    .max(100)
+    .optional(),
+
+  specialization: z
+    .string()
+    .trim()
+    .max(200)
+    .optional(),
+});
+
+export type GoogleLoginInput = z.infer<
+  typeof googleLoginValidationSchema
+>;

@@ -1,15 +1,18 @@
 import type { RequestHandler } from "express";
 import { StatusCodes } from "http-status-codes";
-
+import { AuditAction } from "@prisma/client";
+import { logActivity } from "../../utils/auditLog.js";
 import catchAsync from "../../middlewares/catchAsync.js";
 import sendResponse from "../../utils/sendResponse.js";
 import {
+  googleLoginValidationSchema,
   loginValidationSchema,
   refreshTokenValidationSchema,
   registerValidationSchema,
 } from "./auth.validation.js";
 import {
   getCurrentUser,
+  googleLoginUser,
   loginUser,
   refreshAccessToken,
   registerUser,
@@ -78,7 +81,20 @@ export const getMe: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
-export const logout: RequestHandler = (_req, res) => {
+export const logout: RequestHandler = catchAsync(async (req, res) => {
+  const userId = req.user?.userId;
+
+  if (userId) {
+    await logActivity({
+      req,
+      actorId: userId,
+      action: AuditAction.LOGOUT,
+      entity: "User",
+      entityId: userId,
+      description: "User logged out successfully",
+    });
+  }
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -86,4 +102,21 @@ export const logout: RequestHandler = (_req, res) => {
       "Logout successful. Please remove the access and refresh tokens from the client.",
     data: null,
   });
-};
+});
+
+export const googleLogin: RequestHandler = catchAsync(
+  async (req, res) => {
+    const validatedData =
+      googleLoginValidationSchema.parse(req.body);
+
+    const result =
+      await googleLoginUser(validatedData);
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: "Google login successful",
+      data: result,
+    });
+  },
+);
