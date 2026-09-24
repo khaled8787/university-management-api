@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+
 import prisma from "../../../config/prisma.js";
 import AppError from "../../errors/AppError.js";
 import type {
@@ -36,6 +37,10 @@ const studentPublicSelect = {
   },
 } satisfies Prisma.StudentSelect;
 
+// ============================================================
+// GET SINGLE STUDENT
+// ============================================================
+
 const getStudentById = async (id: string) => {
   const student = await prisma.student.findFirst({
     where: {
@@ -54,7 +59,13 @@ const getStudentById = async (id: string) => {
   return student;
 };
 
-const getAllStudents = async (query: StudentQueryInput) => {
+// ============================================================
+// GET ALL STUDENTS
+// ============================================================
+
+const getAllStudents = async (
+  query: StudentQueryInput,
+) => {
   const {
     page,
     limit,
@@ -71,8 +82,15 @@ const getAllStudents = async (query: StudentQueryInput) => {
     user: {
       deletedAt: null,
     },
-    ...(departmentId && { departmentId }),
-    ...(semester && { semester }),
+
+    ...(departmentId && {
+      departmentId,
+    }),
+
+    ...(semester && {
+      semester,
+    }),
+
     ...(search && {
       OR: [
         {
@@ -116,7 +134,10 @@ const getAllStudents = async (query: StudentQueryInput) => {
   }
 
   const [total, students] = await prisma.$transaction([
-    prisma.student.count({ where }),
+    prisma.student.count({
+      where,
+    }),
+
     prisma.student.findMany({
       where,
       skip,
@@ -133,37 +154,57 @@ const getAllStudents = async (query: StudentQueryInput) => {
       total,
       totalPages: Math.ceil(total / limit),
     },
+
     data: students,
   };
 };
+
+// ============================================================
+// UPDATE STUDENT
+// ============================================================
 
 const updateStudent = async (
   id: string,
   payload: UpdateStudentInput,
 ) => {
+  // Make sure student exists
   await getStudentById(id);
 
+  // Validate department if departmentId is being changed
   if (payload.departmentId) {
-    const department = await prisma.department.findFirst({
-      where: {
-        id: payload.departmentId,
-        deletedAt: null,
-      },
-    });
+    const department =
+      await prisma.department.findFirst({
+        where: {
+          id: payload.departmentId,
+          deletedAt: null,
+        },
+      });
 
     if (!department) {
-      throw new AppError(404, "Department not found");
+      throw new AppError(
+        404,
+        "Department not found",
+      );
     }
   }
 
-  const updatedStudent = await prisma.student.update({
-    where: { id },
-    data: payload,
-    select: studentPublicSelect,
-  });
+  const updatedStudent =
+    await prisma.student.update({
+      where: {
+        id,
+      },
+
+      data: payload,
+
+      select: studentPublicSelect,
+    });
 
   return updatedStudent;
 };
+
+// ============================================================
+// DELETE STUDENT - SOFT DELETE
+// ============================================================
 
 const deleteStudent = async (id: string) => {
   const student = await getStudentById(id);
@@ -172,6 +213,7 @@ const deleteStudent = async (id: string) => {
     where: {
       id: student.user.id,
     },
+
     data: {
       deletedAt: new Date(),
     },
