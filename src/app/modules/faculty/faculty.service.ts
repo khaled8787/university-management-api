@@ -169,6 +169,7 @@ const getAllFaculties = async (query: FacultyQueryInput) => {
       total,
       totalPages: Math.ceil(total / limit),
     },
+
     data: faculties,
   };
 };
@@ -185,6 +186,7 @@ const updateFaculty = async (
         id: payload.departmentId,
         deletedAt: null,
       },
+
       select: {
         id: true,
       },
@@ -199,7 +201,9 @@ const updateFaculty = async (
     where: {
       id,
     },
+
     data: payload,
+
     select: facultyPublicSelect,
   });
 
@@ -213,6 +217,7 @@ const deleteFaculty = async (id: string) => {
     where: {
       id: faculty.user.id,
     },
+
     data: {
       deletedAt: new Date(),
     },
