@@ -1,6 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
+import { AuditAction } from "@prisma/client";
 import { StatusCodes } from "http-status-codes";
+
 import sendResponse from "../../utils/sendResponse.js";
+import { logActivity } from "../../utils/auditLog.js";
 import { resultService } from "./result.service.js";
 import {
   createResultSchema,
@@ -22,6 +25,24 @@ export const createResult = async (
       req.user!.role,
       payload,
     );
+
+    await logActivity({
+      req,
+      actorId: req.user!.userId,
+      action: AuditAction.CREATE,
+      entity: "Result",
+      entityId: result.id,
+      description: "Student result created",
+      newData: {
+        studentId: result.studentId,
+        courseId: result.courseId,
+        facultyId: result.facultyId,
+        marks: result.marks,
+        grade: result.grade,
+        gradePoint: result.gradePoint,
+        remarks: result.remarks ?? null,
+      },
+    });
 
     return sendResponse(res, {
       statusCode: StatusCodes.CREATED,
@@ -107,12 +128,42 @@ export const updateResult = async (
     const { id } = resultIdSchema.parse(req.params);
     const payload = updateResultSchema.parse(req.body);
 
+    // Capture old data before update for audit history.
+    const oldResult = await resultService.getResultById(id);
+
     const result = await resultService.updateResult(
       req.user!.userId,
       req.user!.role,
       id,
       payload,
     );
+
+    await logActivity({
+      req,
+      actorId: req.user!.userId,
+      action: AuditAction.UPDATE,
+      entity: "Result",
+      entityId: result.id,
+      description: "Student result updated",
+      oldData: {
+        studentId: oldResult.studentId,
+        courseId: oldResult.courseId,
+        facultyId: oldResult.facultyId,
+        marks: oldResult.marks,
+        grade: oldResult.grade,
+        gradePoint: oldResult.gradePoint,
+        remarks: oldResult.remarks ?? null,
+      },
+      newData: {
+        studentId: result.studentId,
+        courseId: result.courseId,
+        facultyId: result.facultyId,
+        marks: result.marks,
+        grade: result.grade,
+        gradePoint: result.gradePoint,
+        remarks: result.remarks ?? null,
+      },
+    });
 
     return sendResponse(res, {
       statusCode: StatusCodes.OK,
@@ -133,11 +184,36 @@ export const deleteResult = async (
   try {
     const { id } = resultIdSchema.parse(req.params);
 
+    // Capture old data before deletion for audit history.
+    const oldResult = await resultService.getResultById(id);
+
     await resultService.deleteResult(
       req.user!.userId,
       req.user!.role,
       id,
     );
+
+    await logActivity({
+      req,
+      actorId: req.user!.userId,
+      action: AuditAction.DELETE,
+      entity: "Result",
+      entityId: id,
+      description: "Student result deleted",
+      oldData: {
+        studentId: oldResult.studentId,
+        courseId: oldResult.courseId,
+        facultyId: oldResult.facultyId,
+        marks: oldResult.marks,
+        grade: oldResult.grade,
+        gradePoint: oldResult.gradePoint,
+        remarks: oldResult.remarks ?? null,
+      },
+      newData: {
+        deleted: true,
+        deletedAt: new Date().toISOString(),
+      },
+    });
 
     return sendResponse(res, {
       statusCode: StatusCodes.OK,
