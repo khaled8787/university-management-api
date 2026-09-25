@@ -18,13 +18,18 @@ import {
   updateFacultySchema,
 } from "./faculty.validation.js";
 
+// ============================================================
+// GET ALL FACULTIES
+// ============================================================
+
 const getAllFaculties = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<Response | void> => {
   try {
-    const query = facultyQuerySchema.parse(req.query);
+    const query =
+      facultyQuerySchema.parse(req.query);
 
     const result =
       await facultyService.getAllFaculties(query);
@@ -39,6 +44,10 @@ const getAllFaculties = async (
     return next(error);
   }
 };
+
+// ============================================================
+// GET SINGLE FACULTY
+// ============================================================
 
 const getFacultyById = async (
   req: Request<{ id: string }>,
@@ -63,6 +72,10 @@ const getFacultyById = async (
   }
 };
 
+// ============================================================
+// UPDATE FACULTY
+// ============================================================
+
 const updateFaculty = async (
   req: Request<{ id: string }>,
   res: Response,
@@ -75,18 +88,27 @@ const updateFaculty = async (
     const payload =
       updateFacultySchema.parse(req.body);
 
-    // Get previous data before update
+    // --------------------------------------------------------
+    // Get old faculty data before update
+    // --------------------------------------------------------
+
     const oldFaculty =
       await facultyService.getFacultyById(id);
 
+    // --------------------------------------------------------
     // Update faculty
+    // --------------------------------------------------------
+
     const result =
       await facultyService.updateFaculty(
         id,
         payload,
       );
 
-    // Create audit log
+    // --------------------------------------------------------
+    // Audit log
+    // --------------------------------------------------------
+
     await logActivity({
       req,
       actorId: req.user?.userId,
@@ -97,14 +119,17 @@ const updateFaculty = async (
 
       entityId: id,
 
-      description: "Faculty information updated",
+      description:
+        "Faculty information updated",
 
       oldData: {
         employeeId: oldFaculty.employeeId,
         designation: oldFaculty.designation,
         phone: oldFaculty.phone,
-        specialization: oldFaculty.specialization,
-        departmentId: oldFaculty.departmentId,
+        specialization:
+          oldFaculty.specialization,
+        departmentId:
+          oldFaculty.departmentId,
 
         department: {
           id: oldFaculty.department.id,
@@ -124,8 +149,10 @@ const updateFaculty = async (
         employeeId: result.employeeId,
         designation: result.designation,
         phone: result.phone,
-        specialization: result.specialization,
-        departmentId: result.departmentId,
+        specialization:
+          result.specialization,
+        departmentId:
+          result.departmentId,
 
         department: {
           id: result.department.id,
@@ -153,6 +180,10 @@ const updateFaculty = async (
   }
 };
 
+// ============================================================
+// DELETE FACULTY - SOFT DELETE
+// ============================================================
+
 const deleteFaculty = async (
   req: Request<{ id: string }>,
   res: Response,
@@ -162,14 +193,24 @@ const deleteFaculty = async (
     const { id } =
       facultyIdParamSchema.parse(req.params);
 
-    // Get faculty before soft delete
+    // --------------------------------------------------------
+    // Get faculty before deletion
+    // --------------------------------------------------------
+
     const faculty =
       await facultyService.getFacultyById(id);
 
+    // --------------------------------------------------------
     // Soft delete
-    await facultyService.deleteFaculty(id);
+    // --------------------------------------------------------
 
-    // Create audit log
+    const deletion =
+      await facultyService.deleteFaculty(id);
+
+    // --------------------------------------------------------
+    // Audit log
+    // --------------------------------------------------------
+
     await logActivity({
       req,
       actorId: req.user?.userId,
@@ -180,14 +221,17 @@ const deleteFaculty = async (
 
       entityId: id,
 
-      description: "Faculty account soft deleted",
+      description:
+        "Faculty account soft deleted",
 
       oldData: {
         employeeId: faculty.employeeId,
         designation: faculty.designation,
         phone: faculty.phone,
-        specialization: faculty.specialization,
-        departmentId: faculty.departmentId,
+        specialization:
+          faculty.specialization,
+        departmentId:
+          faculty.departmentId,
 
         department: {
           id: faculty.department.id,
@@ -205,7 +249,8 @@ const deleteFaculty = async (
 
       newData: {
         deleted: true,
-        deletedAt: new Date().toISOString(),
+        deletedAt:
+          deletion.deletedAt.toISOString(),
       },
     });
 
@@ -219,6 +264,10 @@ const deleteFaculty = async (
     return next(error);
   }
 };
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 export const facultyController = {
   getAllFaculties,

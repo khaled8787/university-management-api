@@ -8,6 +8,10 @@ import type {
   UpdateFacultyInput,
 } from "./faculty.validation.js";
 
+// ============================================================
+// FACULTY PUBLIC SELECT
+// ============================================================
+
 const facultyPublicSelect = {
   id: true,
   employeeId: true,
@@ -45,14 +49,29 @@ const facultyPublicSelect = {
   },
 } satisfies Prisma.FacultySelect;
 
+// ============================================================
+// GET SINGLE FACULTY
+// ============================================================
+
 const getFacultyById = async (id: string) => {
   const faculty = await prisma.faculty.findFirst({
     where: {
       id,
+
+      // Faculty itself must not be soft deleted
+      deletedAt: null,
+
+      // Related user must not be soft deleted
       user: {
         deletedAt: null,
       },
+
+      // Related department must not be soft deleted
+      department: {
+        deletedAt: null,
+      },
     },
+
     select: facultyPublicSelect,
   });
 
@@ -63,7 +82,13 @@ const getFacultyById = async (id: string) => {
   return faculty;
 };
 
-const getAllFaculties = async (query: FacultyQueryInput) => {
+// ============================================================
+// GET ALL FACULTIES
+// ============================================================
+
+const getAllFaculties = async (
+  query: FacultyQueryInput,
+) => {
   const {
     page,
     limit,
@@ -78,7 +103,16 @@ const getAllFaculties = async (query: FacultyQueryInput) => {
   const skip = (page - 1) * limit;
 
   const where: Prisma.FacultyWhereInput = {
+    // Exclude soft-deleted faculties
+    deletedAt: null,
+
+    // Exclude soft-deleted users
     user: {
+      deletedAt: null,
+    },
+
+    // Exclude soft-deleted departments
+    department: {
       deletedAt: null,
     },
 
@@ -108,6 +142,7 @@ const getAllFaculties = async (query: FacultyQueryInput) => {
             mode: "insensitive",
           },
         },
+
         {
           user: {
             name: {
@@ -116,6 +151,7 @@ const getAllFaculties = async (query: FacultyQueryInput) => {
             },
           },
         },
+
         {
           user: {
             email: {
@@ -124,6 +160,7 @@ const getAllFaculties = async (query: FacultyQueryInput) => {
             },
           },
         },
+
         {
           specialization: {
             contains: search,
@@ -133,6 +170,10 @@ const getAllFaculties = async (query: FacultyQueryInput) => {
       ],
     }),
   };
+
+  // ==========================================================
+  // SORTING
+  // ==========================================================
 
   let orderBy: Prisma.FacultyOrderByWithRelationInput;
 
@@ -148,19 +189,24 @@ const getAllFaculties = async (query: FacultyQueryInput) => {
     } as Prisma.FacultyOrderByWithRelationInput;
   }
 
-  const [total, faculties] = await prisma.$transaction([
-    prisma.faculty.count({
-      where,
-    }),
+  // ==========================================================
+  // PAGINATION + DATA
+  // ==========================================================
 
-    prisma.faculty.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy,
-      select: facultyPublicSelect,
-    }),
-  ]);
+  const [total, faculties] =
+    await prisma.$transaction([
+      prisma.faculty.count({
+        where,
+      }),
+
+      prisma.faculty.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        select: facultyPublicSelect,
+      }),
+    ]);
 
   return {
     meta: {
@@ -174,57 +220,112 @@ const getAllFaculties = async (query: FacultyQueryInput) => {
   };
 };
 
+// ============================================================
+// UPDATE FACULTY
+// ============================================================
+
 const updateFaculty = async (
   id: string,
   payload: UpdateFacultyInput,
 ) => {
+  // Make sure faculty exists and is not deleted
   await getFacultyById(id);
 
-  if (payload.departmentId) {
-    const department = await prisma.department.findFirst({
-      where: {
-        id: payload.departmentId,
-        deletedAt: null,
-      },
+  // ----------------------------------------------------------
+  // Validate department if departmentId is being changed
+  // ----------------------------------------------------------
 
-      select: {
-        id: true,
-      },
-    });
+  if (payload.departmentId) {
+    const department =
+      await prisma.department.findFirst({
+        where: {
+          id: payload.departmentId,
+          deletedAt: null,
+        },
+
+        select: {
+          id: true,
+        },
+      });
 
     if (!department) {
-      throw new AppError(404, "Department not found");
+      throw new AppError(
+        404,
+        "Department not found",
+      );
     }
   }
 
-  const updatedFaculty = await prisma.faculty.update({
-    where: {
-      id,
-    },
+  // ----------------------------------------------------------
+  // Update faculty
+  // ----------------------------------------------------------
 
-    data: payload,
+  const updatedFaculty =
+    await prisma.faculty.update({
+      where: {
+        id,
+      },
 
-    select: facultyPublicSelect,
-  });
+      data: payload,
+
+      select: facultyPublicSelect,
+    });
 
   return updatedFaculty;
 };
 
+// ============================================================
+// DELETE FACULTY - SOFT DELETE
+// ============================================================
+
 const deleteFaculty = async (id: string) => {
+  // ----------------------------------------------------------
+  // Make sure faculty exists
+  // ----------------------------------------------------------
+
   const faculty = await getFacultyById(id);
 
-  await prisma.user.update({
-    where: {
-      id: faculty.user.id,
-    },
+  // ----------------------------------------------------------
+  // Use one timestamp for Faculty + User
+  // ----------------------------------------------------------
 
-    data: {
-      deletedAt: new Date(),
-    },
-  });
+  const deletedAt = new Date();
 
-  return null;
+  // ----------------------------------------------------------
+  // Soft delete Faculty + User atomically
+  // ----------------------------------------------------------
+
+  await prisma.$transaction([
+    prisma.faculty.update({
+      where: {
+        id: faculty.id,
+      },
+
+      data: {
+        deletedAt,
+      },
+    }),
+
+    prisma.user.update({
+      where: {
+        id: faculty.user.id,
+      },
+
+      data: {
+        deletedAt,
+      },
+    }),
+  ]);
+
+  return {
+    facultyId: faculty.id,
+    deletedAt,
+  };
 };
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 export const facultyService = {
   getFacultyById,
