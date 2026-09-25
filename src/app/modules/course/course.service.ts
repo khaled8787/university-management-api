@@ -104,12 +104,14 @@ const ensureUniqueCourseCode = async (
     where: {
       code,
       deletedAt: null,
+
       ...(excludedId && {
         NOT: {
           id: excludedId,
         },
       }),
     },
+
     select: {
       id: true,
     },
@@ -126,6 +128,7 @@ const getCourseById = async (id: string) => {
       id,
       deletedAt: null,
     },
+
     select: coursePublicSelect,
   });
 
@@ -136,7 +139,9 @@ const getCourseById = async (id: string) => {
   return course;
 };
 
-const createCourse = async (payload: CreateCourseInput) => {
+const createCourse = async (
+  payload: CreateCourseInput,
+) => {
   await ensureUniqueCourseCode(payload.code);
 
   await validateAcademicRelations(
@@ -155,13 +160,16 @@ const createCourse = async (payload: CreateCourseInput) => {
       semester: payload.semester,
       capacity: payload.capacity,
     },
+
     select: coursePublicSelect,
   });
 
   return course;
 };
 
-const getAllCourses = async (query: CourseQueryInput) => {
+const getAllCourses = async (
+  query: CourseQueryInput,
+) => {
   const {
     page,
     limit,
@@ -219,21 +227,24 @@ const getAllCourses = async (query: CourseQueryInput) => {
     }),
   };
 
-  const [total, courses] = await prisma.$transaction([
-    prisma.course.count({
-      where,
-    }),
+  const [total, courses] =
+    await prisma.$transaction([
+      prisma.course.count({
+        where,
+      }),
 
-    prisma.course.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: {
-        [sortBy]: sortOrder,
-      },
-      select: coursePublicSelect,
-    }),
-  ]);
+      prisma.course.findMany({
+        where,
+        skip,
+        take: limit,
+
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+
+        select: coursePublicSelect,
+      }),
+    ]);
 
   return {
     meta: {
@@ -242,6 +253,7 @@ const getAllCourses = async (query: CourseQueryInput) => {
       total,
       totalPages: Math.ceil(total / limit),
     },
+
     data: courses,
   };
 };
@@ -253,42 +265,52 @@ const updateCourse = async (
   await getCourseById(id);
 
   if (payload.code) {
-    await ensureUniqueCourseCode(payload.code, id);
+    await ensureUniqueCourseCode(
+      payload.code,
+      id,
+    );
   }
 
-  const currentCourse = await prisma.course.findUnique({
-    where: {
-      id,
-    },
-    select: {
-      departmentId: true,
-      facultyId: true,
-    },
-  });
+  const currentCourse =
+    await prisma.course.findUnique({
+      where: {
+        id,
+      },
+
+      select: {
+        departmentId: true,
+        facultyId: true,
+      },
+    });
 
   if (!currentCourse) {
     throw new AppError(404, "Course not found");
   }
 
   const departmentId =
-    payload.departmentId ?? currentCourse.departmentId;
+    payload.departmentId ??
+    currentCourse.departmentId;
 
   const facultyId =
     payload.facultyId === undefined
       ? currentCourse.facultyId
       : payload.facultyId;
 
-  await validateAcademicRelations(departmentId, facultyId);
+  await validateAcademicRelations(
+    departmentId,
+    facultyId,
+  );
 
   if (payload.capacity !== undefined) {
-    const enrollmentCount = await prisma.enrollment.count({
-      where: {
-        courseId: id,
-        status: {
-          in: ["PENDING", "APPROVED"],
+    const enrollmentCount =
+      await prisma.enrollment.count({
+        where: {
+          courseId: id,
+          status: {
+            in: ["PENDING", "APPROVED"],
+          },
         },
-      },
-    });
+      });
 
     if (payload.capacity < enrollmentCount) {
       throw new AppError(
@@ -298,13 +320,16 @@ const updateCourse = async (
     }
   }
 
-  const updatedCourse = await prisma.course.update({
-    where: {
-      id,
-    },
-    data: payload,
-    select: coursePublicSelect,
-  });
+  const updatedCourse =
+    await prisma.course.update({
+      where: {
+        id,
+      },
+
+      data: payload,
+
+      select: coursePublicSelect,
+    });
 
   return updatedCourse;
 };
@@ -319,9 +344,11 @@ const updateCourseStatus = async (
     where: {
       id,
     },
+
     data: {
       isActive,
     },
+
     select: coursePublicSelect,
   });
 
@@ -346,6 +373,7 @@ const deleteCourse = async (id: string) => {
     where: {
       id,
     },
+
     data: {
       deletedAt: new Date(),
       isActive: false,
