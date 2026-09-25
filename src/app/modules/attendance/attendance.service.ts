@@ -157,8 +157,16 @@ const createAttendance = async (
 };
 
 const getAttendances = async (query: AttendanceQueryInput) => {
-  const { page, limit, studentId, courseId, facultyId, status, date, sortOrder } =
-    query;
+  const {
+    page,
+    limit,
+    studentId,
+    courseId,
+    facultyId,
+    status,
+    date,
+    sortOrder,
+  } = query;
 
   const where: Prisma.AttendanceWhereInput = {
     ...(studentId && { studentId }),

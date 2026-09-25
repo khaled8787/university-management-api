@@ -1,6 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
+import { AuditAction } from "@prisma/client";
 import { StatusCodes } from "http-status-codes";
+
 import sendResponse from "../../utils/sendResponse.js";
+import { logActivity } from "../../utils/auditLog.js";
 import { attendanceService } from "./attendance.service.js";
 import {
   attendanceIdSchema,
@@ -22,6 +25,23 @@ export const createAttendance = async (
       req.user!.role,
       payload,
     );
+
+    await logActivity({
+      req,
+      actorId: req.user!.userId,
+      action: AuditAction.CREATE,
+      entity: "Attendance",
+      entityId: result.id,
+      description: "Attendance record created",
+      newData: {
+        studentId: result.studentId,
+        courseId: result.courseId,
+        facultyId: result.facultyId,
+        date: result.date.toISOString(),
+        status: result.status,
+        remarks: result.remarks ?? null,
+      },
+    });
 
     return sendResponse(res, {
       statusCode: StatusCodes.CREATED,
@@ -107,12 +127,40 @@ export const updateAttendance = async (
     const { id } = attendanceIdSchema.parse(req.params);
     const payload = updateAttendanceSchema.parse(req.body);
 
+    // Capture the old record before updating it.
+    const oldAttendance = await attendanceService.getAttendanceById(id);
+
     const result = await attendanceService.updateAttendance(
       req.user!.userId,
       req.user!.role,
       id,
       payload,
     );
+
+    await logActivity({
+      req,
+      actorId: req.user!.userId,
+      action: AuditAction.UPDATE,
+      entity: "Attendance",
+      entityId: result.id,
+      description: "Attendance record updated",
+      oldData: {
+        studentId: oldAttendance.studentId,
+        courseId: oldAttendance.courseId,
+        facultyId: oldAttendance.facultyId,
+        date: oldAttendance.date.toISOString(),
+        status: oldAttendance.status,
+        remarks: oldAttendance.remarks ?? null,
+      },
+      newData: {
+        studentId: result.studentId,
+        courseId: result.courseId,
+        facultyId: result.facultyId,
+        date: result.date.toISOString(),
+        status: result.status,
+        remarks: result.remarks ?? null,
+      },
+    });
 
     return sendResponse(res, {
       statusCode: StatusCodes.OK,
@@ -133,11 +181,35 @@ export const deleteAttendance = async (
   try {
     const { id } = attendanceIdSchema.parse(req.params);
 
+    // Capture the old record before deletion.
+    const oldAttendance = await attendanceService.getAttendanceById(id);
+
     await attendanceService.deleteAttendance(
       req.user!.userId,
       req.user!.role,
       id,
     );
+
+    await logActivity({
+      req,
+      actorId: req.user!.userId,
+      action: AuditAction.DELETE,
+      entity: "Attendance",
+      entityId: id,
+      description: "Attendance record deleted",
+      oldData: {
+        studentId: oldAttendance.studentId,
+        courseId: oldAttendance.courseId,
+        facultyId: oldAttendance.facultyId,
+        date: oldAttendance.date.toISOString(),
+        status: oldAttendance.status,
+        remarks: oldAttendance.remarks ?? null,
+      },
+      newData: {
+        deleted: true,
+        deletedAt: new Date().toISOString(),
+      },
+    });
 
     return sendResponse(res, {
       statusCode: StatusCodes.OK,
