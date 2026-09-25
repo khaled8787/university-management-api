@@ -156,6 +156,8 @@ model Student {
   dateOfBirth DateTime?
   address     String?
 
+  deletedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -170,6 +172,7 @@ model Student {
   @@index([departmentId])
   @@index([batch])
   @@index([semester])
+  @@index([deletedAt])
 }
 
 // ============================================================
@@ -184,8 +187,10 @@ model Faculty {
   departmentId String
 
   designation    String
-  phone          String?
+  phone         String?
   specialization String?
+
+  deletedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -199,6 +204,7 @@ model Faculty {
 
   @@index([departmentId])
   @@index([designation])
+  @@index([deletedAt])
 }
 
 // ============================================================
@@ -256,6 +262,8 @@ model Enrollment {
   enrolledAt  DateTime  @default(now())
   completedAt DateTime?
 
+  deletedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -266,6 +274,7 @@ model Enrollment {
   @@index([studentId])
   @@index([courseId])
   @@index([status])
+  @@index([deletedAt])
 }
 
 // ============================================================
@@ -284,6 +293,8 @@ model Attendance {
 
   remarks String?
 
+  deletedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -297,6 +308,7 @@ model Attendance {
   @@index([facultyId])
   @@index([date])
   @@index([status])
+  @@index([deletedAt])
 }
 
 // ============================================================
@@ -316,6 +328,8 @@ model Result {
 
   remarks String?
 
+  deletedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -328,6 +342,7 @@ model Result {
   @@index([courseId])
   @@index([facultyId])
   @@index([grade])
+  @@index([deletedAt])
 }
 
 // ============================================================
