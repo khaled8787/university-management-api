@@ -25,8 +25,9 @@ const getAllStudents = async (
   next: NextFunction,
 ): Promise<Response | void> => {
   try {
-    const query =
-      studentQuerySchema.parse(req.query);
+    const query = studentQuerySchema.parse(
+      req.query,
+    );
 
     const result =
       await studentService.getAllStudents(query);
@@ -120,12 +121,15 @@ const updateStudent = async (
 
       oldData: {
         studentId: oldStudent.studentId,
+
         semester: oldStudent.semester,
         batch: oldStudent.batch,
         phone: oldStudent.phone,
+
         dateOfBirth:
           oldStudent.dateOfBirth?.toISOString() ??
           null,
+
         address: oldStudent.address,
 
         department: {
@@ -144,12 +148,15 @@ const updateStudent = async (
 
       newData: {
         studentId: result.studentId,
+
         semester: result.semester,
         batch: result.batch,
         phone: result.phone,
+
         dateOfBirth:
           result.dateOfBirth?.toISOString() ??
           null,
+
         address: result.address,
 
         department: {
@@ -202,7 +209,8 @@ const deleteStudent = async (
     // Soft delete
     // --------------------------------------------------------
 
-    await studentService.deleteStudent(id);
+    const deletion =
+      await studentService.deleteStudent(id);
 
     // --------------------------------------------------------
     // Audit log
@@ -243,7 +251,8 @@ const deleteStudent = async (
 
       newData: {
         deleted: true,
-        deletedAt: new Date().toISOString(),
+        deletedAt:
+          deletion.deletedAt.toISOString(),
       },
     });
 
@@ -257,6 +266,10 @@ const deleteStudent = async (
     return next(error);
   }
 };
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 export const studentController = {
   getAllStudents,

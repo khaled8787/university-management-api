@@ -7,6 +7,10 @@ import type {
   UpdateStudentInput,
 } from "./student.validation.js";
 
+// ============================================================
+// STUDENT PUBLIC SELECT
+// ============================================================
+
 const studentPublicSelect = {
   id: true,
   studentId: true,
@@ -45,10 +49,21 @@ const getStudentById = async (id: string) => {
   const student = await prisma.student.findFirst({
     where: {
       id,
+
+      // Student itself must not be soft deleted
+      deletedAt: null,
+
+      // Related user must not be soft deleted
       user: {
         deletedAt: null,
       },
+
+      // Related department must not be soft deleted
+      department: {
+        deletedAt: null,
+      },
     },
+
     select: studentPublicSelect,
   });
 
@@ -79,7 +94,16 @@ const getAllStudents = async (
   const skip = (page - 1) * limit;
 
   const where: Prisma.StudentWhereInput = {
+    // Exclude soft-deleted students
+    deletedAt: null,
+
+    // Exclude soft-deleted users
     user: {
+      deletedAt: null,
+    },
+
+    // Exclude soft-deleted departments
+    department: {
       deletedAt: null,
     },
 
@@ -99,6 +123,7 @@ const getAllStudents = async (
             mode: "insensitive",
           },
         },
+
         {
           user: {
             name: {
@@ -107,6 +132,7 @@ const getAllStudents = async (
             },
           },
         },
+
         {
           user: {
             email: {
@@ -167,18 +193,20 @@ const updateStudent = async (
   id: string,
   payload: UpdateStudentInput,
 ) => {
-  // Make sure student exists
+  // Make sure student exists and is not deleted
   await getStudentById(id);
 
+  // ----------------------------------------------------------
   // Validate department if departmentId is being changed
+  // ----------------------------------------------------------
+
   if (payload.departmentId) {
-    const department =
-      await prisma.department.findFirst({
-        where: {
-          id: payload.departmentId,
-          deletedAt: null,
-        },
-      });
+    const department = await prisma.department.findFirst({
+      where: {
+        id: payload.departmentId,
+        deletedAt: null,
+      },
+    });
 
     if (!department) {
       throw new AppError(
@@ -188,16 +216,15 @@ const updateStudent = async (
     }
   }
 
-  const updatedStudent =
-    await prisma.student.update({
-      where: {
-        id,
-      },
+  const updatedStudent = await prisma.student.update({
+    where: {
+      id,
+    },
 
-      data: payload,
+    data: payload,
 
-      select: studentPublicSelect,
-    });
+    select: studentPublicSelect,
+  });
 
   return updatedStudent;
 };
@@ -207,20 +234,53 @@ const updateStudent = async (
 // ============================================================
 
 const deleteStudent = async (id: string) => {
+  // ----------------------------------------------------------
+  // Make sure student exists
+  // ----------------------------------------------------------
+
   const student = await getStudentById(id);
 
-  await prisma.user.update({
-    where: {
-      id: student.user.id,
-    },
+  // ----------------------------------------------------------
+  // One timestamp for both Student and User
+  // ----------------------------------------------------------
 
-    data: {
-      deletedAt: new Date(),
-    },
-  });
+  const deletedAt = new Date();
 
-  return null;
+  // ----------------------------------------------------------
+  // Soft delete Student + User in one transaction
+  // ----------------------------------------------------------
+
+  await prisma.$transaction([
+    prisma.student.update({
+      where: {
+        id: student.id,
+      },
+
+      data: {
+        deletedAt,
+      },
+    }),
+
+    prisma.user.update({
+      where: {
+        id: student.user.id,
+      },
+
+      data: {
+        deletedAt,
+      },
+    }),
+  ]);
+
+  return {
+    studentId: student.id,
+    deletedAt,
+  };
 };
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 export const studentService = {
   getStudentById,
