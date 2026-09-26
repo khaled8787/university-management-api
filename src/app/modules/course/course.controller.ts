@@ -150,11 +150,9 @@ const updateCourse = async (
     const payload =
       updateCourseSchema.parse(req.body);
 
-    // Capture old data before update
     const oldCourse =
       await courseService.getCourseById(id);
 
-    // Update course
     const result =
       await courseService.updateCourse(
         id,
@@ -180,7 +178,8 @@ const updateCourse = async (
         credit: oldCourse.credit,
         departmentId:
           oldCourse.departmentId,
-        facultyId: oldCourse.facultyId,
+        facultyId:
+          oldCourse.facultyId,
         semester: oldCourse.semester,
         capacity: oldCourse.capacity,
         isActive: oldCourse.isActive,
@@ -216,7 +215,8 @@ const updateCourse = async (
         credit: result.credit,
         departmentId:
           result.departmentId,
-        facultyId: result.facultyId,
+        facultyId:
+          result.facultyId,
         semester: result.semester,
         capacity: result.capacity,
         isActive: result.isActive,
@@ -276,7 +276,6 @@ const updateCourseStatus = async (
       );
     }
 
-    // Capture old course status
     const oldCourse =
       await courseService.getCourseById(id);
 
@@ -336,12 +335,11 @@ const deleteCourse = async (
     const { id } =
       courseIdParamSchema.parse(req.params);
 
-    // Capture old course before deletion
     const course =
       await courseService.getCourseById(id);
 
-    // Soft delete
-    await courseService.deleteCourse(id);
+    const deletedCourse =
+      await courseService.deleteCourse(id);
 
     await logActivity({
       req,
@@ -387,22 +385,27 @@ const deleteCourse = async (
             course._count.enrollments,
           attendances:
             course._count.attendances,
-          results: course._count.results,
+          results:
+            course._count.results,
         },
       },
 
       newData: {
-        deleted: true,
-        deletedAt: new Date().toISOString(),
-        isActive: false,
-      },
+  deleted: true,
+  deletedAt:
+    deletedCourse.deletedAt?.toISOString() ?? null,
+  isActive: false,
+},
     });
 
     return sendResponse(res, {
       statusCode: StatusCodes.OK,
       success: true,
       message: "Course deleted successfully",
-      data: null,
+      data: {
+        id: deletedCourse.id,
+        deletedAt: deletedCourse.deletedAt,
+      },
     });
   } catch (error) {
     return next(error);
