@@ -4,10 +4,7 @@ import type {
   Response,
 } from "express";
 
-import {
-  AuditAction,
-} from "@prisma/client";
-
+import { AuditAction } from "@prisma/client";
 import { StatusCodes } from "http-status-codes";
 
 import sendResponse from "../../utils/sendResponse.js";
@@ -21,6 +18,10 @@ import {
   enrollmentQuerySchema,
   updateEnrollmentStatusSchema,
 } from "./enrollment.validation.js";
+
+// ============================================================
+// CREATE ENROLLMENT
+// ============================================================
 
 const createEnrollment = async (
   req: Request,
@@ -98,6 +99,10 @@ const createEnrollment = async (
   }
 };
 
+// ============================================================
+// GET MY ENROLLMENTS
+// ============================================================
+
 const getMyEnrollments = async (
   req: Request,
   res: Response,
@@ -131,6 +136,10 @@ const getMyEnrollments = async (
   }
 };
 
+// ============================================================
+// GET ALL ENROLLMENTS
+// ============================================================
+
 const getEnrollments = async (
   req: Request,
   res: Response,
@@ -141,7 +150,9 @@ const getEnrollments = async (
       enrollmentQuerySchema.parse(req.query);
 
     const result =
-      await enrollmentService.getEnrollments(query);
+      await enrollmentService.getEnrollments(
+        query,
+      );
 
     return sendResponse(res, {
       statusCode: StatusCodes.OK,
@@ -155,6 +166,10 @@ const getEnrollments = async (
   }
 };
 
+// ============================================================
+// GET SINGLE ENROLLMENT
+// ============================================================
+
 const getEnrollmentById = async (
   req: Request<{ id: string }>,
   res: Response,
@@ -162,21 +177,30 @@ const getEnrollmentById = async (
 ): Promise<Response | void> => {
   try {
     const { id } =
-      enrollmentIdParamSchema.parse(req.params);
+      enrollmentIdParamSchema.parse(
+        req.params,
+      );
 
     const result =
-      await enrollmentService.getEnrollmentById(id);
+      await enrollmentService.getEnrollmentById(
+        id,
+      );
 
     return sendResponse(res, {
       statusCode: StatusCodes.OK,
       success: true,
-      message: "Enrollment retrieved successfully",
+      message:
+        "Enrollment retrieved successfully",
       data: result,
     });
   } catch (error) {
     return next(error);
   }
 };
+
+// ============================================================
+// UPDATE ENROLLMENT STATUS
+// ============================================================
 
 const updateEnrollmentStatus = async (
   req: Request<{ id: string }>,
@@ -185,20 +209,37 @@ const updateEnrollmentStatus = async (
 ): Promise<Response | void> => {
   try {
     const { id } =
-      enrollmentIdParamSchema.parse(req.params);
+      enrollmentIdParamSchema.parse(
+        req.params,
+      );
 
     const payload =
-      updateEnrollmentStatusSchema.parse(req.body);
+      updateEnrollmentStatusSchema.parse(
+        req.body,
+      );
 
+    // --------------------------------------------------------
     // Get old enrollment before status change
+    // --------------------------------------------------------
+
     const oldEnrollment =
-      await enrollmentService.getEnrollmentById(id);
+      await enrollmentService.getEnrollmentById(
+        id,
+      );
+
+    // --------------------------------------------------------
+    // Update status
+    // --------------------------------------------------------
 
     const result =
       await enrollmentService.updateEnrollmentStatus(
         id,
         payload,
       );
+
+    // --------------------------------------------------------
+    // Audit log
+    // --------------------------------------------------------
 
     await logActivity({
       req,
@@ -233,7 +274,8 @@ const updateEnrollmentStatus = async (
         course: {
           id: oldEnrollment.course.id,
           code: oldEnrollment.course.code,
-          title: oldEnrollment.course.title,
+          title:
+            oldEnrollment.course.title,
         },
       },
 
@@ -242,12 +284,14 @@ const updateEnrollmentStatus = async (
 
         student: {
           id: result.student.id,
-          studentId: result.student.studentId,
+          studentId:
+            result.student.studentId,
 
           user: {
             id: result.student.user.id,
             name: result.student.user.name,
-            email: result.student.user.email,
+            email:
+              result.student.user.email,
           },
         },
 
@@ -271,6 +315,10 @@ const updateEnrollmentStatus = async (
   }
 };
 
+// ============================================================
+// CANCEL MY ENROLLMENT
+// ============================================================
+
 const cancelMyEnrollment = async (
   req: Request<{ id: string }>,
   res: Response,
@@ -284,16 +332,31 @@ const cancelMyEnrollment = async (
     }
 
     const { id } =
-      enrollmentIdParamSchema.parse(req.params);
+      enrollmentIdParamSchema.parse(
+        req.params,
+      );
 
+    // --------------------------------------------------------
     // Get enrollment before cancellation
+    // --------------------------------------------------------
+
     const enrollment =
-      await enrollmentService.getEnrollmentById(id);
+      await enrollmentService.getEnrollmentById(
+        id,
+      );
+
+    // --------------------------------------------------------
+    // Cancel enrollment
+    // --------------------------------------------------------
 
     await enrollmentService.cancelMyEnrollment(
       req.user.userId,
       id,
     );
+
+    // --------------------------------------------------------
+    // Audit log
+    // --------------------------------------------------------
 
     await logActivity({
       req,
@@ -328,12 +391,13 @@ const cancelMyEnrollment = async (
         course: {
           id: enrollment.course.id,
           code: enrollment.course.code,
-          title: enrollment.course.title,
+          title:
+            enrollment.course.title,
         },
       },
 
       newData: {
-        status: "DROPPED",
+        status: EnrollmentStatus.DROPPED,
       },
     });
 
@@ -348,6 +412,10 @@ const cancelMyEnrollment = async (
     return next(error);
   }
 };
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 export const enrollmentController = {
   createEnrollment,
