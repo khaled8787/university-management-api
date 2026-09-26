@@ -4,7 +4,7 @@ import type {
   Response,
 } from "express";
 
-import { AuditAction } from "@prisma/client";
+import { AuditAction, EnrollmentStatus } from "@prisma/client";
 import { StatusCodes } from "http-status-codes";
 
 import sendResponse from "../../utils/sendResponse.js";

@@ -61,6 +61,7 @@ export const getAttendances = async (
 ): Promise<Response | void> => {
   try {
     const query = attendanceQuerySchema.parse(req.query);
+
     const result = await attendanceService.getAttendances(query);
 
     return sendResponse(res, {
@@ -105,6 +106,7 @@ export const getAttendanceById = async (
 ): Promise<Response | void> => {
   try {
     const { id } = attendanceIdSchema.parse(req.params);
+
     const result = await attendanceService.getAttendanceById(id);
 
     return sendResponse(res, {
@@ -125,6 +127,7 @@ export const updateAttendance = async (
 ): Promise<Response | void> => {
   try {
     const { id } = attendanceIdSchema.parse(req.params);
+
     const payload = updateAttendanceSchema.parse(req.body);
 
     // Capture the old record before updating it.
@@ -144,6 +147,7 @@ export const updateAttendance = async (
       entity: "Attendance",
       entityId: result.id,
       description: "Attendance record updated",
+
       oldData: {
         studentId: oldAttendance.studentId,
         courseId: oldAttendance.courseId,
@@ -152,6 +156,7 @@ export const updateAttendance = async (
         status: oldAttendance.status,
         remarks: oldAttendance.remarks ?? null,
       },
+
       newData: {
         studentId: result.studentId,
         courseId: result.courseId,
@@ -181,10 +186,10 @@ export const deleteAttendance = async (
   try {
     const { id } = attendanceIdSchema.parse(req.params);
 
-    // Capture the old record before deletion.
+    // Capture the old record before soft deletion.
     const oldAttendance = await attendanceService.getAttendanceById(id);
 
-    await attendanceService.deleteAttendance(
+    const deletedAttendance = await attendanceService.deleteAttendance(
       req.user!.userId,
       req.user!.role,
       id,
@@ -196,7 +201,8 @@ export const deleteAttendance = async (
       action: AuditAction.DELETE,
       entity: "Attendance",
       entityId: id,
-      description: "Attendance record deleted",
+      description: "Attendance record soft deleted",
+
       oldData: {
         studentId: oldAttendance.studentId,
         courseId: oldAttendance.courseId,
@@ -205,9 +211,10 @@ export const deleteAttendance = async (
         status: oldAttendance.status,
         remarks: oldAttendance.remarks ?? null,
       },
+
       newData: {
         deleted: true,
-        deletedAt: new Date().toISOString(),
+        deletedAt: deletedAttendance.deletedAt?.toISOString() ?? null,
       },
     });
 
