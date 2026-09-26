@@ -18,6 +18,7 @@ const resultSelect = {
   remarks: true,
   createdAt: true,
   updatedAt: true,
+
   student: {
     select: {
       id: true,
@@ -30,6 +31,7 @@ const resultSelect = {
       },
     },
   },
+
   course: {
     select: {
       id: true,
@@ -38,6 +40,7 @@ const resultSelect = {
       credit: true,
     },
   },
+
   faculty: {
     select: {
       id: true,
@@ -52,23 +55,63 @@ const resultSelect = {
 } satisfies Prisma.ResultSelect;
 
 const calculateGrade = (marks: number) => {
-  if (marks >= 80) return { grade: "A_PLUS", gradePoint: 4.0 };
-  if (marks >= 75) return { grade: "A", gradePoint: 3.75 };
-  if (marks >= 70) return { grade: "A_MINUS", gradePoint: 3.5 };
-  if (marks >= 65) return { grade: "B_PLUS", gradePoint: 3.25 };
-  if (marks >= 60) return { grade: "B", gradePoint: 3.0 };
-  if (marks >= 55) return { grade: "B_MINUS", gradePoint: 2.75 };
-  if (marks >= 50) return { grade: "C_PLUS", gradePoint: 2.5 };
-  if (marks >= 45) return { grade: "C", gradePoint: 2.25 };
-  if (marks >= 40) return { grade: "D", gradePoint: 2.0 };
+  if (marks >= 80) {
+    return { grade: "A_PLUS", gradePoint: 4.0 };
+  }
+
+  if (marks >= 75) {
+    return { grade: "A", gradePoint: 3.75 };
+  }
+
+  if (marks >= 70) {
+    return { grade: "A_MINUS", gradePoint: 3.5 };
+  }
+
+  if (marks >= 65) {
+    return { grade: "B_PLUS", gradePoint: 3.25 };
+  }
+
+  if (marks >= 60) {
+    return { grade: "B", gradePoint: 3.0 };
+  }
+
+  if (marks >= 55) {
+    return { grade: "B_MINUS", gradePoint: 2.75 };
+  }
+
+  if (marks >= 50) {
+    return { grade: "C_PLUS", gradePoint: 2.5 };
+  }
+
+  if (marks >= 45) {
+    return { grade: "C", gradePoint: 2.25 };
+  }
+
+  if (marks >= 40) {
+    return { grade: "D", gradePoint: 2.0 };
+  }
 
   return { grade: "F", gradePoint: 0.0 };
 };
 
 const getFacultyProfile = async (userId: string) => {
-  const faculty = await prisma.faculty.findUnique({
-    where: { userId },
-    select: { id: true },
+  const faculty = await prisma.faculty.findFirst({
+    where: {
+      userId,
+      deletedAt: null,
+
+      user: {
+        deletedAt: null,
+      },
+
+      department: {
+        deletedAt: null,
+      },
+    },
+
+    select: {
+      id: true,
+    },
   });
 
   if (!faculty) {
@@ -83,12 +126,35 @@ const verifyStudentAndCourse = async (
   courseId: string,
 ) => {
   const [student, course] = await Promise.all([
-    prisma.student.findUnique({
-      where: { id: studentId },
-      select: { id: true },
+    prisma.student.findFirst({
+      where: {
+        id: studentId,
+        deletedAt: null,
+
+        user: {
+          deletedAt: null,
+        },
+
+        department: {
+          deletedAt: null,
+        },
+      },
+
+      select: {
+        id: true,
+      },
     }),
-    prisma.course.findUnique({
-      where: { id: courseId },
+
+    prisma.course.findFirst({
+      where: {
+        id: courseId,
+        deletedAt: null,
+
+        department: {
+          deletedAt: null,
+        },
+      },
+
       select: {
         id: true,
         facultyId: true,
@@ -107,6 +173,36 @@ const verifyStudentAndCourse = async (
 
   if (!course.isActive) {
     throw new AppError(400, "This course is inactive");
+  }
+
+  // If a faculty is assigned to the course,
+  // make sure that faculty is still active.
+  if (course.facultyId) {
+    const faculty = await prisma.faculty.findFirst({
+      where: {
+        id: course.facultyId,
+        deletedAt: null,
+
+        user: {
+          deletedAt: null,
+        },
+
+        department: {
+          deletedAt: null,
+        },
+      },
+
+      select: {
+        id: true,
+      },
+    });
+
+    if (!faculty) {
+      throw new AppError(
+        400,
+        "The faculty assigned to this course is no longer active",
+      );
+    }
   }
 
   return course;
@@ -143,12 +239,11 @@ const createResult = async (
     facultyId = faculty.id;
   }
 
-  const existingResult = await prisma.result.findUnique({
+  const existingResult = await prisma.result.findFirst({
     where: {
-      studentId_courseId: {
-        studentId: payload.studentId,
-        courseId: payload.courseId,
-      },
+      studentId: payload.studentId,
+      courseId: payload.courseId,
+      deletedAt: null,
     },
   });
 
@@ -171,6 +266,7 @@ const createResult = async (
       gradePoint: grading.gradePoint,
       remarks: payload.remarks,
     },
+
     select: resultSelect,
   });
 };
@@ -186,19 +282,66 @@ const getResults = async (query: ResultQueryInput) => {
   } = query;
 
   const where: Prisma.ResultWhereInput = {
-    ...(studentId && { studentId }),
-    ...(courseId && { courseId }),
-    ...(facultyId && { facultyId }),
+    deletedAt: null,
+
+    ...(studentId && {
+      studentId,
+    }),
+
+    ...(courseId && {
+      courseId,
+    }),
+
+    ...(facultyId && {
+      facultyId,
+    }),
+
+    student: {
+      deletedAt: null,
+
+      user: {
+        deletedAt: null,
+      },
+
+      department: {
+        deletedAt: null,
+      },
+    },
+
+    course: {
+      deletedAt: null,
+
+      department: {
+        deletedAt: null,
+      },
+    },
+
+    faculty: {
+      deletedAt: null,
+
+      user: {
+        deletedAt: null,
+      },
+
+      department: {
+        deletedAt: null,
+      },
+    },
   };
 
   const [total, data] = await prisma.$transaction([
-    prisma.result.count({ where }),
+    prisma.result.count({
+      where,
+    }),
+
     prisma.result.findMany({
       where,
       select: resultSelect,
+
       orderBy: {
         createdAt: sortOrder,
       },
+
       skip: (page - 1) * limit,
       take: limit,
     }),
@@ -211,6 +354,7 @@ const getResults = async (query: ResultQueryInput) => {
       total,
       totalPages: Math.ceil(total / limit),
     },
+
     data,
   };
 };
@@ -219,9 +363,23 @@ const getMyResults = async (
   userId: string,
   query: ResultQueryInput,
 ) => {
-  const student = await prisma.student.findUnique({
-    where: { userId },
-    select: { id: true },
+  const student = await prisma.student.findFirst({
+    where: {
+      userId,
+      deletedAt: null,
+
+      user: {
+        deletedAt: null,
+      },
+
+      department: {
+        deletedAt: null,
+      },
+    },
+
+    select: {
+      id: true,
+    },
   });
 
   if (!student) {
@@ -235,8 +393,44 @@ const getMyResults = async (
 };
 
 const getResultById = async (id: string) => {
-  const result = await prisma.result.findUnique({
-    where: { id },
+  const result = await prisma.result.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+
+      student: {
+        deletedAt: null,
+
+        user: {
+          deletedAt: null,
+        },
+
+        department: {
+          deletedAt: null,
+        },
+      },
+
+      course: {
+        deletedAt: null,
+
+        department: {
+          deletedAt: null,
+        },
+      },
+
+      faculty: {
+        deletedAt: null,
+
+        user: {
+          deletedAt: null,
+        },
+
+        department: {
+          deletedAt: null,
+        },
+      },
+    },
+
     select: resultSelect,
   });
 
@@ -253,8 +447,44 @@ const updateResult = async (
   id: string,
   payload: UpdateResultInput,
 ) => {
-  const existingResult = await prisma.result.findUnique({
-    where: { id },
+  const existingResult = await prisma.result.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+
+      student: {
+        deletedAt: null,
+
+        user: {
+          deletedAt: null,
+        },
+
+        department: {
+          deletedAt: null,
+        },
+      },
+
+      course: {
+        deletedAt: null,
+
+        department: {
+          deletedAt: null,
+        },
+      },
+
+      faculty: {
+        deletedAt: null,
+
+        user: {
+          deletedAt: null,
+        },
+
+        department: {
+          deletedAt: null,
+        },
+      },
+    },
+
     include: {
       course: {
         select: {
@@ -291,17 +521,22 @@ const updateResult = async (
         };
 
   return prisma.result.update({
-    where: { id },
+    where: {
+      id,
+    },
+
     data: {
       ...(payload.marks !== undefined && {
         marks: payload.marks,
         grade: grading.grade as never,
         gradePoint: grading.gradePoint,
       }),
+
       ...(payload.remarks !== undefined && {
         remarks: payload.remarks,
       }),
     },
+
     select: resultSelect,
   });
 };
@@ -311,8 +546,44 @@ const deleteResult = async (
   role: string,
   id: string,
 ) => {
-  const existingResult = await prisma.result.findUnique({
-    where: { id },
+  const existingResult = await prisma.result.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+
+      student: {
+        deletedAt: null,
+
+        user: {
+          deletedAt: null,
+        },
+
+        department: {
+          deletedAt: null,
+        },
+      },
+
+      course: {
+        deletedAt: null,
+
+        department: {
+          deletedAt: null,
+        },
+      },
+
+      faculty: {
+        deletedAt: null,
+
+        user: {
+          deletedAt: null,
+        },
+
+        department: {
+          deletedAt: null,
+        },
+      },
+    },
+
     select: {
       id: true,
       facultyId: true,
@@ -334,8 +605,21 @@ const deleteResult = async (
     }
   }
 
-  await prisma.result.delete({
-    where: { id },
+  const deletedAt = new Date();
+
+  return prisma.result.update({
+    where: {
+      id,
+    },
+
+    data: {
+      deletedAt,
+    },
+
+    select: {
+      id: true,
+      deletedAt: true,
+    },
   });
 };
 

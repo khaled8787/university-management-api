@@ -33,6 +33,7 @@ export const createResult = async (
       entity: "Result",
       entityId: result.id,
       description: "Student result created",
+
       newData: {
         studentId: result.studentId,
         courseId: result.courseId,
@@ -62,6 +63,7 @@ export const getResults = async (
 ): Promise<Response | void> => {
   try {
     const query = resultQuerySchema.parse(req.query);
+
     const result = await resultService.getResults(query);
 
     return sendResponse(res, {
@@ -106,6 +108,7 @@ export const getResultById = async (
 ): Promise<Response | void> => {
   try {
     const { id } = resultIdSchema.parse(req.params);
+
     const result = await resultService.getResultById(id);
 
     return sendResponse(res, {
@@ -126,6 +129,7 @@ export const updateResult = async (
 ): Promise<Response | void> => {
   try {
     const { id } = resultIdSchema.parse(req.params);
+
     const payload = updateResultSchema.parse(req.body);
 
     // Capture old data before update for audit history.
@@ -145,6 +149,7 @@ export const updateResult = async (
       entity: "Result",
       entityId: result.id,
       description: "Student result updated",
+
       oldData: {
         studentId: oldResult.studentId,
         courseId: oldResult.courseId,
@@ -154,6 +159,7 @@ export const updateResult = async (
         gradePoint: oldResult.gradePoint,
         remarks: oldResult.remarks ?? null,
       },
+
       newData: {
         studentId: result.studentId,
         courseId: result.courseId,
@@ -184,10 +190,10 @@ export const deleteResult = async (
   try {
     const { id } = resultIdSchema.parse(req.params);
 
-    // Capture old data before deletion for audit history.
+    // Capture old data before soft deletion.
     const oldResult = await resultService.getResultById(id);
 
-    await resultService.deleteResult(
+    const deletedResult = await resultService.deleteResult(
       req.user!.userId,
       req.user!.role,
       id,
@@ -199,7 +205,8 @@ export const deleteResult = async (
       action: AuditAction.DELETE,
       entity: "Result",
       entityId: id,
-      description: "Student result deleted",
+      description: "Student result soft deleted",
+
       oldData: {
         studentId: oldResult.studentId,
         courseId: oldResult.courseId,
@@ -209,9 +216,10 @@ export const deleteResult = async (
         gradePoint: oldResult.gradePoint,
         remarks: oldResult.remarks ?? null,
       },
+
       newData: {
         deleted: true,
-        deletedAt: new Date().toISOString(),
+        deletedAt: deletedResult.deletedAt?.toISOString() ?? null,
       },
     });
 
