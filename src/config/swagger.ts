@@ -351,6 +351,415 @@ export const swaggerSpec: OpenAPIV3.Document = {
   },
 },
 
+"/departments": {
+  get: {
+    tags: ["Departments"],
+    summary: "Get all departments",
+    description:
+      "Retrieve a paginated list of active departments. Any authenticated user can access this endpoint.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "page",
+        in: "query",
+        description: "Page number",
+        required: false,
+        schema: {
+          type: "integer",
+          minimum: 1,
+          default: 1,
+        },
+        example: 1,
+      },
+      {
+        name: "limit",
+        in: "query",
+        description: "Number of departments per page",
+        required: false,
+        schema: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+        example: 10,
+      },
+      {
+        name: "search",
+        in: "query",
+        description: "Search departments by name or code",
+        required: false,
+        schema: {
+          type: "string",
+        },
+        example: "Computer",
+      },
+      {
+        name: "sortBy",
+        in: "query",
+        description: "Field used for sorting",
+        required: false,
+        schema: {
+          type: "string",
+          example: "name",
+        },
+      },
+      {
+        name: "sortOrder",
+        in: "query",
+        description: "Sorting direction",
+        required: false,
+        schema: {
+          type: "string",
+          enum: ["asc", "desc"],
+          default: "asc",
+        },
+        example: "asc",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Departments retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  post: {
+    tags: ["Departments"],
+    summary: "Create a department",
+    description: "Create a new department. Only ADMIN users can create departments.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            required: ["name", "code"],
+            properties: {
+              name: {
+                type: "string",
+                example: "Computer Science and Engineering",
+              },
+              code: {
+                type: "string",
+                example: "CSE",
+              },
+              description: {
+                type: "string",
+                example:
+                  "Department of Computer Science and Engineering.",
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "201": {
+        description: "Department created successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description: "Invalid department data or duplicate department",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can create departments",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+"/departments/{id}": {
+  get: {
+    tags: ["Departments"],
+    summary: "Get department by ID",
+    description:
+      "Retrieve a single active department by its ID. Any authenticated user can access this endpoint.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Department ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123department456",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Department retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Department not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  patch: {
+    tags: ["Departments"],
+    summary: "Update a department",
+    description: "Update an existing department. Only ADMIN users can update departments.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Department ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123department456",
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                example: "Computer Science and Engineering",
+              },
+              code: {
+                type: "string",
+                example: "CSE",
+              },
+              description: {
+                type: "string",
+                example:
+                  "Updated department description.",
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "200": {
+        description: "Department updated successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description: "Invalid update data or duplicate department",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can update departments",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Department not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  delete: {
+    tags: ["Departments"],
+    summary: "Soft delete a department",
+    description:
+      "Soft delete an existing department. The department is not physically removed from the database. Only ADMIN users can perform this operation.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Department ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123department456",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Department soft deleted successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description:
+          "Department cannot be deleted because it is referenced by other records",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can delete departments",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Department not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
 
   },
 };
