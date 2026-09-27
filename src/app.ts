@@ -6,7 +6,8 @@ import rateLimit from "express-rate-limit";
 import appRoutes from "./app/routes/index.js";
 import notFound from "./app/middlewares/notFound.js";
 import globalErrorHandler from "./app/errors/globalErrorHandler.js";
-
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger.js";
 const app: Application = express();
 
 app.use(helmet());
@@ -42,6 +43,15 @@ app.use(
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(
+  "/api/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customSiteTitle: "University Management API Docs",
+  }),
+);
 
 app.get("/", (_req, res) => {
   res.status(200).json({
