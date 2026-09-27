@@ -3729,3 +3729,598 @@ swaggerSpec.paths["/results/{id}"] = {
     },
   },
 };
+
+
+swaggerSpec.paths["/payments"] = {
+  post: {
+    tags: ["Payments"],
+    summary: "Create a payment",
+    description:
+      "Creates a new payment record for the authenticated student.",
+    security: [{ bearerAuth: [] }],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            required: ["amount"],
+            properties: {
+              amount: {
+                type: "number",
+                minimum: 0,
+                description: "Payment amount",
+                example: 1500,
+              },
+              currency: {
+                type: "string",
+                description: "Payment currency",
+                example: "usd",
+              },
+              description: {
+                type: "string",
+                description: "Payment description",
+                example: "Semester tuition fee",
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "201": {
+        description: "Payment created successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description: "Invalid payment data",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only STUDENT users can create payments",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  get: {
+    tags: ["Payments"],
+    summary: "Get all payments",
+    description:
+      "Returns all payments with pagination and filtering. Only ADMIN users can access this endpoint.",
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: "page",
+        in: "query",
+        required: false,
+        description: "Page number",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          default: 1,
+        },
+      },
+      {
+        name: "limit",
+        in: "query",
+        required: false,
+        description: "Number of payments per page",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+      },
+      {
+        name: "status",
+        in: "query",
+        required: false,
+        description: "Filter payments by status",
+        schema: {
+          type: "string",
+        },
+      },
+      {
+        name: "studentId",
+        in: "query",
+        required: false,
+        description: "Filter payments by student ID",
+        schema: {
+          type: "string",
+        },
+      },
+      {
+        name: "search",
+        in: "query",
+        required: false,
+        description: "Search payments",
+        schema: {
+          type: "string",
+        },
+      },
+      {
+        name: "sortBy",
+        in: "query",
+        required: false,
+        description: "Field used for sorting",
+        schema: {
+          type: "string",
+        },
+      },
+      {
+        name: "sortOrder",
+        in: "query",
+        required: false,
+        description: "Sorting direction",
+        schema: {
+          type: "string",
+          enum: ["asc", "desc"],
+          default: "desc",
+        },
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Payments retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can access all payments",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+swaggerSpec.paths["/payments/my"] = {
+  get: {
+    tags: ["Payments"],
+    summary: "Get my payments",
+    description:
+      "Returns all payments belonging to the authenticated student.",
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: "page",
+        in: "query",
+        required: false,
+        description: "Page number",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          default: 1,
+        },
+      },
+      {
+        name: "limit",
+        in: "query",
+        required: false,
+        description: "Number of payments per page",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+      },
+      {
+        name: "status",
+        in: "query",
+        required: false,
+        description: "Filter by payment status",
+        schema: {
+          type: "string",
+        },
+      },
+      {
+        name: "sortOrder",
+        in: "query",
+        required: false,
+        description: "Sorting direction",
+        schema: {
+          type: "string",
+          enum: ["asc", "desc"],
+          default: "desc",
+        },
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Student payments retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only STUDENT users can access their payments",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+swaggerSpec.paths["/payments/my/{id}"] = {
+  get: {
+    tags: ["Payments"],
+    summary: "Get my payment by ID",
+    description:
+      "Returns a specific payment belonging to the authenticated student.",
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Payment ID",
+        schema: {
+          type: "string",
+        },
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Payment retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only STUDENT users can access this payment",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Payment not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+swaggerSpec.paths["/payments/{id}/stripe-checkout"] = {
+  post: {
+    tags: ["Payments"],
+    summary: "Create Stripe checkout session",
+    description:
+      "Creates a Stripe Checkout Session for the authenticated student's payment.",
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Payment ID",
+        schema: {
+          type: "string",
+        },
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Stripe checkout session created successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description: "Unable to create Stripe checkout session",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only STUDENT users can create checkout sessions",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Payment not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+swaggerSpec.paths["/payments/{id}/cancel"] = {
+  patch: {
+    tags: ["Payments"],
+    summary: "Cancel a payment",
+    description:
+      "Cancels a payment belonging to the authenticated student.",
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Payment ID",
+        schema: {
+          type: "string",
+        },
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Payment cancelled successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description: "Payment cannot be cancelled",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only STUDENT users can cancel payments",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Payment not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+swaggerSpec.paths["/payments/admin/{id}"] = {
+  get: {
+    tags: ["Payments"],
+    summary: "Get payment by ID as admin",
+    description:
+      "Returns detailed information about a specific payment. Only ADMIN users can access this endpoint.",
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Payment ID",
+        schema: {
+          type: "string",
+        },
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Payment retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can access this endpoint",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Payment not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+swaggerSpec.paths["/payments/stripe/webhook"] = {
+  post: {
+    tags: ["Payments"],
+    summary: "Stripe webhook",
+    description:
+      "Receives Stripe webhook events and updates the payment status based on Stripe events. This endpoint is called directly by Stripe and does not require Bearer authentication.",
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            description: "Stripe webhook event payload",
+          },
+        },
+      },
+    },
+    responses: {
+      "200": {
+        description: "Webhook event processed successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description: "Invalid Stripe webhook payload or signature",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+};
