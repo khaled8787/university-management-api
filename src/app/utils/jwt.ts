@@ -1,8 +1,8 @@
 import jwt, { type SignOptions } from "jsonwebtoken";
-
+import { UserRole } from "@prisma/client";
 type JwtPayload = {
   userId: string;
-  role: string;
+  role: UserRole;
 };
 
 const getAccessSecret = (): string => {
