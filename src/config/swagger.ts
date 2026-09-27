@@ -760,6 +760,366 @@ export const swaggerSpec: OpenAPIV3.Document = {
   },
 },
 
+"/students": {
+  get: {
+    tags: ["Students"],
+    summary: "Get all students",
+    description:
+      "Retrieve a paginated list of students. Only ADMIN users can access this endpoint.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "page",
+        in: "query",
+        required: false,
+        description: "Page number",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          default: 1,
+        },
+        example: 1,
+      },
+      {
+        name: "limit",
+        in: "query",
+        required: false,
+        description: "Number of students per page",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+        example: 10,
+      },
+      {
+        name: "search",
+        in: "query",
+        required: false,
+        description:
+          "Search students by name, email, student ID or other supported fields",
+        schema: {
+          type: "string",
+        },
+        example: "Khaled",
+      },
+      {
+        name: "sortBy",
+        in: "query",
+        required: false,
+        description: "Field used for sorting",
+        schema: {
+          type: "string",
+        },
+        example: "createdAt",
+      },
+      {
+        name: "sortOrder",
+        in: "query",
+        required: false,
+        description: "Sorting direction",
+        schema: {
+          type: "string",
+          enum: ["asc", "desc"],
+          default: "desc",
+        },
+        example: "desc",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Students retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can view students",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+"/students/{id}": {
+  get: {
+    tags: ["Students"],
+    summary: "Get student by ID",
+    description:
+      "Retrieve a specific student by ID. Only ADMIN users can access this endpoint.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Student ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123student456",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Student retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can view a student",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Student not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  patch: {
+    tags: ["Students"],
+    summary: "Update student profile",
+    description:
+      "Update an existing student's profile. Only ADMIN users can update student information.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Student ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123student456",
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                example: "Khaled Mahmud",
+              },
+              phone: {
+                type: "string",
+                example: "+8801700000000",
+              },
+              address: {
+                type: "string",
+                example: "Natore, Bangladesh",
+              },
+              dateOfBirth: {
+                type: "string",
+                format: "date",
+                example: "2002-05-15",
+              },
+              departmentId: {
+                type: "string",
+                example: "clx123department456",
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "200": {
+        description: "Student updated successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description: "Invalid student update data",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can update students",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Student not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  delete: {
+    tags: ["Students"],
+    summary: "Soft delete a student",
+    description:
+      "Soft delete a student instead of permanently removing the record from the database. Only ADMIN users can perform this operation.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Student ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123student456",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Student soft deleted successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description:
+          "Student cannot be deleted because of related academic records or business rules",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can delete students",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Student not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
 
   },
 };
