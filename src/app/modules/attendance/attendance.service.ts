@@ -184,11 +184,14 @@ const createAttendance = async (
     facultyId = faculty.id;
   }
 
+  const attendanceDate = new Date(payload.date);
+attendanceDate.setHours(0, 0, 0, 0);
+
   const existingAttendance = await prisma.attendance.findFirst({
     where: {
       studentId: payload.studentId,
       courseId: payload.courseId,
-      date: payload.date,
+      date: attendanceDate,
       deletedAt: null,
     },
   });
@@ -205,7 +208,7 @@ const createAttendance = async (
       studentId: payload.studentId,
       courseId: payload.courseId,
       facultyId,
-      date: payload.date,
+      date: attendanceDate,
       status: payload.status as AttendanceStatus,
       remarks: payload.remarks,
     },
@@ -246,9 +249,9 @@ const getAttendances = async (query: AttendanceQueryInput) => {
 
     ...(date && {
       date: {
-        gte: new Date(date.setHours(0, 0, 0, 0)),
-        lt: new Date(date.setHours(23, 59, 59, 999)),
-      },
+  gte: new Date(new Date(date).setHours(0, 0, 0, 0)),
+  lt: new Date(new Date(date).setHours(23, 59, 59, 999)),
+},
     }),
 
     student: {
