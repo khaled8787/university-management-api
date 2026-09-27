@@ -3210,3 +3210,522 @@ export const swaggerSpec: OpenAPIV3.Document = {
 
   },
 };
+
+// =========================
+// Results
+// =========================
+
+swaggerSpec.paths["/results"] = {
+  get: {
+    tags: ["Results"],
+    summary: "Get all results",
+    description:
+      "Returns a paginated list of all student results. Only ADMIN users can access this endpoint.",
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: "page",
+        in: "query",
+        description: "Page number",
+        required: false,
+        schema: {
+          type: "integer",
+          minimum: 1,
+          default: 1,
+        },
+      },
+      {
+        name: "limit",
+        in: "query",
+        description: "Number of results per page",
+        required: false,
+        schema: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+      },
+      {
+        name: "search",
+        in: "query",
+        description: "Search results",
+        required: false,
+        schema: {
+          type: "string",
+        },
+      },
+      {
+        name: "studentId",
+        in: "query",
+        description: "Filter results by student ID",
+        required: false,
+        schema: {
+          type: "string",
+        },
+      },
+      {
+        name: "courseId",
+        in: "query",
+        description: "Filter results by course ID",
+        required: false,
+        schema: {
+          type: "string",
+        },
+      },
+      {
+        name: "sortBy",
+        in: "query",
+        description: "Field used for sorting",
+        required: false,
+        schema: {
+          type: "string",
+        },
+      },
+      {
+        name: "sortOrder",
+        in: "query",
+        description: "Sorting direction",
+        required: false,
+        schema: {
+          type: "string",
+          enum: ["asc", "desc"],
+          default: "desc",
+        },
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Results retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can access this endpoint",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  post: {
+    tags: ["Results"],
+    summary: "Create a result",
+    description:
+      "Creates a new student result. ADMIN and FACULTY users can create results.",
+    security: [{ bearerAuth: [] }],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            required: ["studentId", "courseId", "marks"],
+            properties: {
+              studentId: {
+                type: "string",
+                description: "Student ID",
+                example: "clstudent123",
+              },
+              courseId: {
+                type: "string",
+                description: "Course ID",
+                example: "clcourse123",
+              },
+              marks: {
+                type: "number",
+                description: "Obtained marks",
+                minimum: 0,
+                maximum: 100,
+                example: 85,
+              },
+              grade: {
+                type: "string",
+                description: "Grade",
+                example: "A+",
+              },
+              gradePoint: {
+                type: "number",
+                description: "Grade point",
+                example: 4,
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "201": {
+        description: "Result created successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description: "Invalid result data or business rule violation",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN or FACULTY users can create results",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+swaggerSpec.paths["/results/my"] = {
+  get: {
+    tags: ["Results"],
+    summary: "Get my results",
+    description:
+      "Returns the authenticated student's own academic results.",
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: "page",
+        in: "query",
+        description: "Page number",
+        required: false,
+        schema: {
+          type: "integer",
+          minimum: 1,
+          default: 1,
+        },
+      },
+      {
+        name: "limit",
+        in: "query",
+        description: "Number of results per page",
+        required: false,
+        schema: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+      },
+      {
+        name: "courseId",
+        in: "query",
+        description: "Filter results by course ID",
+        required: false,
+        schema: {
+          type: "string",
+        },
+      },
+      {
+        name: "sortOrder",
+        in: "query",
+        description: "Sorting direction",
+        required: false,
+        schema: {
+          type: "string",
+          enum: ["asc", "desc"],
+          default: "desc",
+        },
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Student results retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only STUDENT users can access their own results",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+swaggerSpec.paths["/results/{id}"] = {
+  get: {
+    tags: ["Results"],
+    summary: "Get a single result",
+    description:
+      "Returns details of a specific result. ADMIN, FACULTY and STUDENT users can access this endpoint according to authorization rules.",
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Result ID",
+        schema: {
+          type: "string",
+        },
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Result retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "User is not authorized to view this result",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Result not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  patch: {
+    tags: ["Results"],
+    summary: "Update a result",
+    description:
+      "Updates an existing result. Only ADMIN and FACULTY users can update results.",
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Result ID",
+        schema: {
+          type: "string",
+        },
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              marks: {
+                type: "number",
+                description: "Updated obtained marks",
+                minimum: 0,
+                maximum: 100,
+                example: 90,
+              },
+              grade: {
+                type: "string",
+                description: "Updated grade",
+                example: "A+",
+              },
+              gradePoint: {
+                type: "number",
+                description: "Updated grade point",
+                example: 4,
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "200": {
+        description: "Result updated successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description: "Invalid update data",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN or FACULTY users can update results",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Result not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  delete: {
+    tags: ["Results"],
+    summary: "Delete a result",
+    description:
+      "Soft deletes an existing result. Only ADMIN and FACULTY users can delete results.",
+    security: [{ bearerAuth: [] }],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Result ID",
+        schema: {
+          type: "string",
+        },
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Result deleted successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN or FACULTY users can delete results",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Result not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+};
