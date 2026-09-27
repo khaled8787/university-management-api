@@ -1491,5 +1491,611 @@ export const swaggerSpec: OpenAPIV3.Document = {
 },
 
 
+"/courses": {
+  get: {
+    tags: ["Courses"],
+    summary: "Get all courses",
+    description:
+      "Retrieve a paginated and filterable list of courses. ADMIN, FACULTY and STUDENT users can access this endpoint.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "page",
+        in: "query",
+        required: false,
+        description: "Page number",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          default: 1,
+        },
+        example: 1,
+      },
+      {
+        name: "limit",
+        in: "query",
+        required: false,
+        description: "Number of courses per page",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+        example: 10,
+      },
+      {
+        name: "search",
+        in: "query",
+        required: false,
+        description: "Search courses by title, code or other supported fields",
+        schema: {
+          type: "string",
+        },
+        example: "Database",
+      },
+      {
+        name: "departmentId",
+        in: "query",
+        required: false,
+        description: "Filter courses by department ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123department456",
+      },
+      {
+        name: "facultyId",
+        in: "query",
+        required: false,
+        description: "Filter courses by faculty ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123faculty456",
+      },
+      {
+        name: "isActive",
+        in: "query",
+        required: false,
+        description: "Filter courses by active status",
+        schema: {
+          type: "boolean",
+        },
+        example: true,
+      },
+      {
+        name: "sortBy",
+        in: "query",
+        required: false,
+        description: "Field used for sorting",
+        schema: {
+          type: "string",
+        },
+        example: "createdAt",
+      },
+      {
+        name: "sortOrder",
+        in: "query",
+        required: false,
+        description: "Sorting direction",
+        schema: {
+          type: "string",
+          enum: ["asc", "desc"],
+          default: "desc",
+        },
+        example: "desc",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Courses retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description:
+          "User role is not allowed to access course listing",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  post: {
+    tags: ["Courses"],
+    summary: "Create a course",
+    description:
+      "Create a new course. Only ADMIN users can create courses.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            required: [
+              "code",
+              "title",
+              "credit",
+              "departmentId",
+            ],
+            properties: {
+              code: {
+                type: "string",
+                example: "CSE-101",
+              },
+              title: {
+                type: "string",
+                example: "Introduction to Computer Science",
+              },
+              description: {
+                type: "string",
+                example:
+                  "Fundamental concepts of computer science and programming.",
+              },
+              credit: {
+                type: "number",
+                format: "float",
+                example: 3,
+              },
+              capacity: {
+                type: "integer",
+                example: 40,
+              },
+              departmentId: {
+                type: "string",
+                example: "clx123department456",
+              },
+              facultyId: {
+                type: "string",
+                nullable: true,
+                example: "clx123faculty456",
+              },
+              isActive: {
+                type: "boolean",
+                default: true,
+                example: true,
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "201": {
+        description: "Course created successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description:
+          "Invalid course data, duplicate course code, or invalid academic relation",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can create courses",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+"/courses/{id}": {
+  get: {
+    tags: ["Courses"],
+    summary: "Get course by ID",
+    description:
+      "Retrieve a specific active course by ID. ADMIN, FACULTY and STUDENT users can access this endpoint.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Course ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123course456",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Course retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "User role is not allowed to access this course",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Course not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  patch: {
+    tags: ["Courses"],
+    summary: "Update a course",
+    description:
+      "Update an existing course. Only ADMIN users can update courses.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Course ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123course456",
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              code: {
+                type: "string",
+                example: "CSE-101",
+              },
+              title: {
+                type: "string",
+                example: "Advanced Introduction to Computer Science",
+              },
+              description: {
+                type: "string",
+                example:
+                  "Updated course description.",
+              },
+              credit: {
+                type: "number",
+                format: "float",
+                example: 3,
+              },
+              capacity: {
+                type: "integer",
+                example: 50,
+              },
+              departmentId: {
+                type: "string",
+                example: "clx123department456",
+              },
+              facultyId: {
+                type: "string",
+                nullable: true,
+                example: "clx123faculty456",
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "200": {
+        description: "Course updated successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description:
+          "Invalid course data, duplicate course code, invalid relation, or capacity constraint",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can update courses",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Course not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  delete: {
+    tags: ["Courses"],
+    summary: "Soft delete a course",
+    description:
+      "Soft delete a course instead of physically removing it from the database. Only ADMIN users can perform this operation.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Course ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123course456",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Course soft deleted successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description:
+          "Course cannot be deleted because it has related academic records",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can delete courses",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Course not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+"/courses/{id}/status": {
+  patch: {
+    tags: ["Courses"],
+    summary: "Activate or deactivate a course",
+    description:
+      "Change the active status of a course. Only ADMIN users can activate or deactivate courses.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Course ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123course456",
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            required: ["isActive"],
+            properties: {
+              isActive: {
+                type: "boolean",
+                example: true,
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "200": {
+        description: "Course status updated successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description: "Invalid course status data",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can change course status",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Course not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+
   },
 };
