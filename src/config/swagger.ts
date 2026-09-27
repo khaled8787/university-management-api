@@ -2097,5 +2097,542 @@ export const swaggerSpec: OpenAPIV3.Document = {
 },
 
 
+"/enrollments": {
+  post: {
+    tags: ["Enrollments"],
+    summary: "Create an enrollment request",
+    description:
+      "Create a new course enrollment request. Only STUDENT users can create enrollment requests.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            required: ["courseId"],
+            properties: {
+              courseId: {
+                type: "string",
+                description: "Course ID for enrollment",
+                example: "clx123course456",
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "201": {
+        description: "Enrollment request created successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description:
+          "Invalid enrollment request or enrollment business rule violation",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only STUDENT users can create enrollments",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  get: {
+    tags: ["Enrollments"],
+    summary: "Get all enrollments",
+    description:
+      "Retrieve all enrollment records with pagination, filtering and sorting. Only ADMIN users can access this endpoint.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "page",
+        in: "query",
+        required: false,
+        description: "Page number",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          default: 1,
+        },
+        example: 1,
+      },
+      {
+        name: "limit",
+        in: "query",
+        required: false,
+        description: "Number of enrollments per page",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+        example: 10,
+      },
+      {
+        name: "search",
+        in: "query",
+        required: false,
+        description: "Search enrollment records",
+        schema: {
+          type: "string",
+        },
+        example: "CSE-101",
+      },
+      {
+        name: "status",
+        in: "query",
+        required: false,
+        description: "Filter enrollments by status",
+        schema: {
+          type: "string",
+          example: "PENDING",
+        },
+        example: "PENDING",
+      },
+      {
+        name: "studentId",
+        in: "query",
+        required: false,
+        description: "Filter enrollments by student ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123student456",
+      },
+      {
+        name: "courseId",
+        in: "query",
+        required: false,
+        description: "Filter enrollments by course ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123course456",
+      },
+      {
+        name: "sortBy",
+        in: "query",
+        required: false,
+        description: "Field used for sorting",
+        schema: {
+          type: "string",
+        },
+        example: "createdAt",
+      },
+      {
+        name: "sortOrder",
+        in: "query",
+        required: false,
+        description: "Sorting direction",
+        schema: {
+          type: "string",
+          enum: ["asc", "desc"],
+          default: "desc",
+        },
+        example: "desc",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Enrollments retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can view all enrollments",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+"/enrollments/my": {
+  get: {
+    tags: ["Enrollments"],
+    summary: "Get my enrollments",
+    description:
+      "Retrieve the authenticated student's own enrollment records. Only STUDENT users can access this endpoint.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "page",
+        in: "query",
+        required: false,
+        description: "Page number",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          default: 1,
+        },
+        example: 1,
+      },
+      {
+        name: "limit",
+        in: "query",
+        required: false,
+        description: "Number of enrollments per page",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+        example: 10,
+      },
+      {
+        name: "status",
+        in: "query",
+        required: false,
+        description: "Filter own enrollments by status",
+        schema: {
+          type: "string",
+        },
+        example: "APPROVED",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Student enrollments retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only STUDENT users can view their enrollments",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+"/enrollments/{id}": {
+  get: {
+    tags: ["Enrollments"],
+    summary: "Get enrollment by ID",
+    description:
+      "Retrieve a specific enrollment. ADMIN, FACULTY and STUDENT users can access this endpoint according to the application's authorization rules.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Enrollment ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123enrollment456",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Enrollment retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "User role is not allowed to access this enrollment",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Enrollment not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+"/enrollments/{id}/cancel": {
+  patch: {
+    tags: ["Enrollments"],
+    summary: "Cancel my enrollment",
+    description:
+      "Cancel the authenticated student's own pending enrollment request. Only STUDENT users can perform this operation.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Enrollment ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123enrollment456",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Enrollment cancelled successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description:
+          "Enrollment cannot be cancelled because it is not pending or violates a business rule",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only STUDENT users can cancel enrollments",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Enrollment not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+"/enrollments/{id}/status": {
+  patch: {
+    tags: ["Enrollments"],
+    summary: "Approve or reject an enrollment",
+    description:
+      "Update the status of an enrollment request. Only ADMIN users can approve or reject enrollment requests.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Enrollment ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123enrollment456",
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            required: ["status"],
+            properties: {
+              status: {
+                type: "string",
+                description: "New enrollment status",
+                example: "APPROVED",
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "200": {
+        description: "Enrollment status updated successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description:
+          "Invalid enrollment status or enrollment cannot be updated",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can approve or reject enrollments",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Enrollment not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+
   },
 };
