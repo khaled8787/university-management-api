@@ -336,7 +336,6 @@ model Result {
   course  Course  @relation(fields: [courseId], references: [id], onDelete: Restrict)
   faculty Faculty @relation(fields: [facultyId], references: [id], onDelete: Restrict)
 
-  @@unique([studentId, courseId])
   @@index([studentId])
   @@index([courseId])
   @@index([facultyId])

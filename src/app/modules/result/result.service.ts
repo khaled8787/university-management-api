@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Grade, Prisma } from "@prisma/client";
 import prisma from "../../../config/prisma.js";
 import AppError from "../../errors/AppError.js";
 import type {
@@ -262,7 +262,7 @@ const createResult = async (
       courseId: payload.courseId,
       facultyId,
       marks: payload.marks,
-      grade: grading.grade as never,
+      grade: grading.grade as Grade,
       gradePoint: grading.gradePoint,
       remarks: payload.remarks,
     },
@@ -528,7 +528,7 @@ const updateResult = async (
     data: {
       ...(payload.marks !== undefined && {
         marks: payload.marks,
-        grade: grading.grade as never,
+        grade: grading.grade as Grade,
         gradePoint: grading.gradePoint,
       }),
 

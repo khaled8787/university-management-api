@@ -11,10 +11,14 @@ export const createResultSchema = z.object({
   remarks: z.string().max(500).optional(),
 });
 
-export const updateResultSchema = z.object({
-  marks: z.coerce.number().min(0).max(100).optional(),
-  remarks: z.string().max(500).optional(),
-});
+export const updateResultSchema = z
+  .object({
+    marks: z.coerce.number().min(0).max(100).optional(),
+    remarks: z.string().trim().max(500).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field is required for update",
+  });
 
 export const resultQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
