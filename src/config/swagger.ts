@@ -1121,5 +1121,375 @@ export const swaggerSpec: OpenAPIV3.Document = {
 },
 
 
+"/faculties": {
+  get: {
+    tags: ["Faculties"],
+    summary: "Get all faculties",
+    description:
+      "Retrieve a paginated list of faculties. Only ADMIN users can access this endpoint.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "page",
+        in: "query",
+        required: false,
+        description: "Page number",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          default: 1,
+        },
+        example: 1,
+      },
+      {
+        name: "limit",
+        in: "query",
+        required: false,
+        description: "Number of faculty records per page",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+        example: 10,
+      },
+      {
+        name: "search",
+        in: "query",
+        required: false,
+        description:
+          "Search faculties by name, email, employee ID or other supported fields",
+        schema: {
+          type: "string",
+        },
+        example: "Rahman",
+      },
+      {
+        name: "departmentId",
+        in: "query",
+        required: false,
+        description: "Filter faculties by department ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123department456",
+      },
+      {
+        name: "sortBy",
+        in: "query",
+        required: false,
+        description: "Field used for sorting",
+        schema: {
+          type: "string",
+        },
+        example: "createdAt",
+      },
+      {
+        name: "sortOrder",
+        in: "query",
+        required: false,
+        description: "Sorting direction",
+        schema: {
+          type: "string",
+          enum: ["asc", "desc"],
+          default: "desc",
+        },
+        example: "desc",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Faculties retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can view faculties",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+"/faculties/{id}": {
+  get: {
+    tags: ["Faculties"],
+    summary: "Get faculty by ID",
+    description:
+      "Retrieve a specific faculty member by ID. Only ADMIN users can access this endpoint.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Faculty ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123faculty456",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Faculty retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can view a faculty",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Faculty not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  patch: {
+    tags: ["Faculties"],
+    summary: "Update faculty profile",
+    description:
+      "Update an existing faculty member's profile. Only ADMIN users can update faculty information.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Faculty ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123faculty456",
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                example: "Dr. Abdul Rahman",
+              },
+              phone: {
+                type: "string",
+                example: "+8801700000000",
+              },
+              address: {
+                type: "string",
+                example: "Rajshahi, Bangladesh",
+              },
+              designation: {
+                type: "string",
+                example: "Associate Professor",
+              },
+              departmentId: {
+                type: "string",
+                example: "clx123department456",
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "200": {
+        description: "Faculty updated successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description: "Invalid faculty update data",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can update faculties",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Faculty not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  delete: {
+    tags: ["Faculties"],
+    summary: "Soft delete a faculty",
+    description:
+      "Soft delete a faculty member instead of permanently removing the database record. Only ADMIN users can perform this operation.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Faculty ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123faculty456",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Faculty soft deleted successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description:
+          "Faculty cannot be deleted because of related records or business rules",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can delete faculties",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Faculty not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+
   },
 };
