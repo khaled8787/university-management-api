@@ -14,8 +14,14 @@ export const enrollmentQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(10),
 
   status: z
-    .enum(["PENDING", "APPROVED", "REJECTED", "CANCELLED"])
-    .optional(),
+  .enum([
+    "PENDING",
+    "APPROVED",
+    "REJECTED",
+    "DROPPED",
+    "COMPLETED",
+  ])
+  .optional(),
 
   courseId: z.string().trim().optional(),
 

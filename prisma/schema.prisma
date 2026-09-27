@@ -270,7 +270,6 @@ model Enrollment {
   student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
   course  Course  @relation(fields: [courseId], references: [id], onDelete: Restrict)
 
-  @@unique([studentId, courseId])
   @@index([studentId])
   @@index([courseId])
   @@index([status])
