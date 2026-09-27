@@ -2634,5 +2634,579 @@ export const swaggerSpec: OpenAPIV3.Document = {
 },
 
 
+"/attendances": {
+  get: {
+    tags: ["Attendance"],
+    summary: "Get all attendance records",
+    description:
+      "Retrieve all attendance records with pagination and filtering. Only ADMIN users can access this endpoint.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "page",
+        in: "query",
+        required: false,
+        description: "Page number",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          default: 1,
+        },
+        example: 1,
+      },
+      {
+        name: "limit",
+        in: "query",
+        required: false,
+        description: "Number of attendance records per page",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+        example: 10,
+      },
+      {
+        name: "studentId",
+        in: "query",
+        required: false,
+        description: "Filter attendance by student ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123student456",
+      },
+      {
+        name: "courseId",
+        in: "query",
+        required: false,
+        description: "Filter attendance by course ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123course456",
+      },
+      {
+        name: "date",
+        in: "query",
+        required: false,
+        description: "Filter attendance by date",
+        schema: {
+          type: "string",
+          format: "date",
+        },
+        example: "2026-09-28",
+      },
+      {
+        name: "status",
+        in: "query",
+        required: false,
+        description: "Filter attendance by attendance status",
+        schema: {
+          type: "string",
+        },
+        example: "PRESENT",
+      },
+      {
+        name: "sortBy",
+        in: "query",
+        required: false,
+        description: "Field used for sorting",
+        schema: {
+          type: "string",
+        },
+        example: "createdAt",
+      },
+      {
+        name: "sortOrder",
+        in: "query",
+        required: false,
+        description: "Sorting direction",
+        schema: {
+          type: "string",
+          enum: ["asc", "desc"],
+          default: "desc",
+        },
+        example: "desc",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Attendance records retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only ADMIN users can view all attendance records",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  post: {
+    tags: ["Attendance"],
+    summary: "Create an attendance record",
+    description:
+      "Create an attendance record for a student in a course. ADMIN and FACULTY users can create attendance records.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            required: [
+              "studentId",
+              "courseId",
+              "date",
+              "status",
+            ],
+            properties: {
+              studentId: {
+                type: "string",
+                example: "clx123student456",
+              },
+              courseId: {
+                type: "string",
+                example: "clx123course456",
+              },
+              date: {
+                type: "string",
+                format: "date",
+                example: "2026-09-28",
+              },
+              status: {
+                type: "string",
+                example: "PRESENT",
+              },
+              remarks: {
+                type: "string",
+                example: "Student attended the class.",
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "201": {
+        description: "Attendance record created successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description:
+          "Invalid attendance data or duplicate attendance record",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description:
+          "Only ADMIN or FACULTY users can create attendance",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+"/attendances/my": {
+  get: {
+    tags: ["Attendance"],
+    summary: "Get my attendance records",
+    description:
+      "Retrieve attendance records belonging to the authenticated student. Only STUDENT users can access this endpoint.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "page",
+        in: "query",
+        required: false,
+        description: "Page number",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          default: 1,
+        },
+        example: 1,
+      },
+      {
+        name: "limit",
+        in: "query",
+        required: false,
+        description: "Number of records per page",
+        schema: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+        example: 10,
+      },
+      {
+        name: "courseId",
+        in: "query",
+        required: false,
+        description: "Filter own attendance by course ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123course456",
+      },
+      {
+        name: "status",
+        in: "query",
+        required: false,
+        description: "Filter own attendance by status",
+        schema: {
+          type: "string",
+        },
+        example: "PRESENT",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Student attendance retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description: "Only STUDENT users can access their attendance",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+"/attendances/{id}": {
+  get: {
+    tags: ["Attendance"],
+    summary: "Get attendance record by ID",
+    description:
+      "Retrieve a single attendance record. ADMIN, FACULTY and STUDENT users can access this endpoint according to application authorization rules.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Attendance record ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123attendance456",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Attendance record retrieved successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description:
+          "User role is not allowed to view this attendance record",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Attendance record not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  patch: {
+    tags: ["Attendance"],
+    summary: "Update an attendance record",
+    description:
+      "Update an existing attendance record. Only ADMIN and FACULTY users can update attendance.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Attendance record ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123attendance456",
+      },
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              date: {
+                type: "string",
+                format: "date",
+                example: "2026-09-28",
+              },
+              status: {
+                type: "string",
+                example: "ABSENT",
+              },
+              remarks: {
+                type: "string",
+                example: "Updated attendance status.",
+              },
+            },
+          },
+        },
+      },
+    },
+    responses: {
+      "200": {
+        description: "Attendance updated successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description: "Invalid attendance update data",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description:
+          "Only ADMIN or FACULTY users can update attendance",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Attendance record not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+
+  delete: {
+    tags: ["Attendance"],
+    summary: "Soft delete an attendance record",
+    description:
+      "Soft delete an attendance record instead of physically removing it from the database. Only ADMIN and FACULTY users can perform this operation.",
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        description: "Attendance record ID",
+        schema: {
+          type: "string",
+        },
+        example: "clx123attendance456",
+      },
+    ],
+    responses: {
+      "200": {
+        description: "Attendance record soft deleted successfully",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/SuccessResponse",
+            },
+          },
+        },
+      },
+      "400": {
+        description:
+          "Attendance record cannot be deleted because of a business rule",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "401": {
+        description: "Authentication required",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "403": {
+        description:
+          "Only ADMIN or FACULTY users can delete attendance",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+      "404": {
+        description: "Attendance record not found",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse",
+            },
+          },
+        },
+      },
+    },
+  },
+},
+
+
   },
 };
