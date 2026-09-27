@@ -53,6 +53,14 @@ export const registerValidationSchema = z
   });
 }
 
+if (data.role === "STUDENT" && !data.studentId) {
+  context.addIssue({
+    code: "custom",
+    path: ["studentId"],
+    message: "studentId is required for student registration",
+  });
+}
+
     if (data.role === "FACULTY" && !data.employeeId) {
       context.addIssue({
         code: "custom",
