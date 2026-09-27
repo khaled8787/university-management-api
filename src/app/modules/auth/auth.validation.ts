@@ -23,11 +23,9 @@ export const registerValidationSchema = z
       message: "Role must be either STUDENT or FACULTY",
     }),
 
-    studentId: z.string().trim().optional(),
-
-    employeeId: z.string().trim().optional(),
-
-    departmentId: z.string().trim().optional(),
+    studentId: z.string().trim().min(1).optional(),
+    employeeId: z.string().trim().min(1).optional(),
+    departmentId: z.string().trim().min(1).optional(),
 
     semester: z.number().int().min(1).max(20).optional(),
 
@@ -96,11 +94,9 @@ export const googleLoginValidationSchema = z.object({
     .enum(["STUDENT", "FACULTY"])
     .optional(),
 
-  studentId: z.string().trim().optional(),
-
-  employeeId: z.string().trim().optional(),
-
-  departmentId: z.string().trim().optional(),
+  studentId: z.string().trim().min(1).optional(),
+  employeeId: z.string().trim().min(1).optional(),
+  departmentId: z.string().trim().min(1).optional(),
 
   semester: z
     .number()
@@ -110,10 +106,11 @@ export const googleLoginValidationSchema = z.object({
     .optional(),
 
   batch: z
-    .string()
-    .trim()
-    .max(50)
-    .optional(),
+  .string()
+  .trim()
+  .min(1, "Batch cannot be empty")
+  .max(50)
+  .optional(),
 
   phone: z
     .string()
