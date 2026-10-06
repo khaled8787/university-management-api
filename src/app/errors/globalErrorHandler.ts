@@ -41,8 +41,13 @@ const globalErrorHandler: ErrorRequestHandler = (
       },
     ];
   } else if (error instanceof Error) {
-    message = error.message;
-  }
+  console.error("Unhandled error:", error);
+
+  message =
+    process.env.NODE_ENV === "production"
+      ? "Internal server error"
+      : error.message;
+}
 
   res.status(statusCode).json({
     success: false,
