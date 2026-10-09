@@ -1,3 +1,4 @@
+
 import { Prisma } from "@prisma/client";
 
 import prisma from "../../../config/prisma.js";
@@ -65,7 +66,6 @@ const validateAcademicRelations = async (
       id: departmentId,
       deletedAt: null,
     },
-
     select: {
       id: true,
     },
@@ -80,14 +80,11 @@ const validateAcademicRelations = async (
       where: {
         id: facultyId,
         deletedAt: null,
-
         user: {
           deletedAt: null,
         },
-
         departmentId,
       },
-
       select: {
         id: true,
       },
@@ -110,14 +107,12 @@ const ensureUniqueCourseCode = async (
     where: {
       code,
       deletedAt: null,
-
       ...(excludedId && {
         NOT: {
           id: excludedId,
         },
       }),
     },
-
     select: {
       id: true,
     },
@@ -128,16 +123,35 @@ const ensureUniqueCourseCode = async (
   }
 };
 
+const getFacultyProfile = async (userId: string) => {
+  const faculty = await prisma.faculty.findFirst({
+    where: {
+      userId,
+      deletedAt: null,
+      user: {
+        deletedAt: null,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!faculty) {
+    throw new AppError(404, "Faculty profile not found");
+  }
+
+  return faculty;
+};
+
 const getCourseById = async (id: string) => {
   const course = await prisma.course.findFirst({
     where: {
       id,
       deletedAt: null,
-
       department: {
         deletedAt: null,
       },
-
       OR: [
         {
           facultyId: null,
@@ -152,7 +166,6 @@ const getCourseById = async (id: string) => {
         },
       ],
     },
-
     select: coursePublicSelect,
   });
 
@@ -173,7 +186,7 @@ const createCourse = async (
     payload.facultyId,
   );
 
-  const course = await prisma.course.create({
+  return prisma.course.create({
     data: {
       code: payload.code,
       title: payload.title,
@@ -184,11 +197,8 @@ const createCourse = async (
       semester: payload.semester,
       capacity: payload.capacity,
     },
-
     select: coursePublicSelect,
   });
-
-  return course;
 };
 
 const getAllCourses = async (
@@ -210,11 +220,9 @@ const getAllCourses = async (
 
   const where: Prisma.CourseWhereInput = {
     deletedAt: null,
-
     department: {
       deletedAt: null,
     },
-
     OR: [
       {
         facultyId: null,
@@ -228,23 +236,18 @@ const getAllCourses = async (
         },
       },
     ],
-
     ...(departmentId && {
       departmentId,
     }),
-
     ...(facultyId && {
       facultyId,
     }),
-
-    ...(semester && {
+    ...(semester !== undefined && {
       semester,
     }),
-
     ...(isActive !== undefined && {
       isActive,
     }),
-
     ...(search && {
       AND: [
         {
@@ -277,16 +280,13 @@ const getAllCourses = async (
     prisma.course.count({
       where,
     }),
-
     prisma.course.findMany({
       where,
       skip,
       take: limit,
-
       orderBy: {
         [sortBy]: sortOrder,
       },
-
       select: coursePublicSelect,
     }),
   ]);
@@ -298,9 +298,26 @@ const getAllCourses = async (
       total,
       totalPages: Math.ceil(total / limit),
     },
-
     data: courses,
   };
+};
+
+/**
+ * Returns only active courses assigned to the authenticated faculty.
+ * The faculty ID is resolved from the authenticated user's ID, never
+ * trusted from query parameters.
+ */
+const getMyCourses = async (
+  userId: string,
+  query: CourseQueryInput,
+) => {
+  const faculty = await getFacultyProfile(userId);
+
+  return getAllCourses({
+    ...query,
+    facultyId: faculty.id,
+    isActive: true,
+  });
 };
 
 const updateCourse = async (
@@ -310,32 +327,26 @@ const updateCourse = async (
   await getCourseById(id);
 
   if (payload.code) {
-    await ensureUniqueCourseCode(
-      payload.code,
-      id,
-    );
+    await ensureUniqueCourseCode(payload.code, id);
   }
 
-  const currentCourse =
-    await prisma.course.findFirst({
-      where: {
-        id,
-        deletedAt: null,
-      },
-
-      select: {
-        departmentId: true,
-        facultyId: true,
-      },
-    });
+  const currentCourse = await prisma.course.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+    },
+    select: {
+      departmentId: true,
+      facultyId: true,
+    },
+  });
 
   if (!currentCourse) {
     throw new AppError(404, "Course not found");
   }
 
   const departmentId =
-    payload.departmentId ??
-    currentCourse.departmentId;
+    payload.departmentId ?? currentCourse.departmentId;
 
   const facultyId =
     payload.facultyId === undefined
@@ -348,18 +359,15 @@ const updateCourse = async (
   );
 
   if (payload.capacity !== undefined) {
-    const enrollmentCount =
-      await prisma.enrollment.count({
-        where: {
-          courseId: id,
-
-          deletedAt: null,
-
-          status: {
-            in: ["PENDING", "APPROVED"],
-          },
+    const enrollmentCount = await prisma.enrollment.count({
+      where: {
+        courseId: id,
+        deletedAt: null,
+        status: {
+          in: ["PENDING", "APPROVED"],
         },
-      });
+      },
+    });
 
     if (payload.capacity < enrollmentCount) {
       throw new AppError(
@@ -369,18 +377,13 @@ const updateCourse = async (
     }
   }
 
-  const updatedCourse =
-    await prisma.course.update({
-      where: {
-        id,
-      },
-
-      data: payload,
-
-      select: coursePublicSelect,
-    });
-
-  return updatedCourse;
+  return prisma.course.update({
+    where: {
+      id,
+    },
+    data: payload,
+    select: coursePublicSelect,
+  });
 };
 
 const updateCourseStatus = async (
@@ -389,19 +392,15 @@ const updateCourseStatus = async (
 ) => {
   await getCourseById(id);
 
-  const course = await prisma.course.update({
+  return prisma.course.update({
     where: {
       id,
     },
-
     data: {
       isActive,
     },
-
     select: coursePublicSelect,
   });
-
-  return course;
 };
 
 const deleteCourse = async (id: string) => {
@@ -418,32 +417,26 @@ const deleteCourse = async (id: string) => {
     );
   }
 
-  const deletedAt = new Date();
-
-  const deletedCourse =
-    await prisma.course.update({
-      where: {
-        id,
-      },
-
-      data: {
-        deletedAt,
-        isActive: false,
-      },
-
-      select: {
-        id: true,
-        deletedAt: true,
-      },
-    });
-
-  return deletedCourse;
+  return prisma.course.update({
+    where: {
+      id,
+    },
+    data: {
+      deletedAt: new Date(),
+      isActive: false,
+    },
+    select: {
+      id: true,
+      deletedAt: true,
+    },
+  });
 };
 
 export const courseService = {
   createCourse,
   getCourseById,
   getAllCourses,
+  getMyCourses,
   updateCourse,
   updateCourseStatus,
   deleteCourse,

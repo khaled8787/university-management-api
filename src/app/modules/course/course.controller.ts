@@ -12,7 +12,7 @@ import { StatusCodes } from "http-status-codes";
 
 import sendResponse from "../../utils/sendResponse.js";
 import { logActivity } from "../../utils/auditLog.js";
-
+import AppError from "../../errors/AppError.js";
 import { courseService } from "./course.service.js";
 
 import {
@@ -412,9 +412,46 @@ const deleteCourse = async (
   }
 };
 
+const getMyCourses = async (
+req: Request,
+res: Response,
+next: NextFunction,
+): Promise<Response | void> => {
+try {
+const userId = req.user?.userId;
+
+
+if (!userId) {
+  return next(
+    new AppError(401, "Authentication required"),
+  );
+}
+
+const query = courseQuerySchema.parse(req.query);
+
+const result = await courseService.getMyCourses(
+  userId,
+  query,
+);
+
+return sendResponse(res, {
+  statusCode: StatusCodes.OK,
+  success: true,
+  message: "Your assigned courses retrieved successfully",
+  data: result,
+});
+
+
+} catch (error) {
+return next(error);
+}
+};
+
+
 export const courseController = {
   createCourse,
   getAllCourses,
+  getMyCourses,
   getCourseById,
   updateCourse,
   updateCourseStatus,

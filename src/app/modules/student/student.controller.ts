@@ -1,7 +1,7 @@
 import type {
-  NextFunction,
-  Request,
-  Response,
+NextFunction,
+Request,
+Response,
 } from "express";
 import { AuditAction } from "@prisma/client";
 import { StatusCodes } from "http-status-codes";
@@ -10,37 +10,72 @@ import sendResponse from "../../utils/sendResponse.js";
 import { logActivity } from "../../utils/auditLog.js";
 import { studentService } from "./student.service.js";
 import {
-  studentIdParamSchema,
-  studentQuerySchema,
-  updateStudentSchema,
+studentIdParamSchema,
+studentQuerySchema,
+updateStudentSchema,
 } from "./student.validation.js";
 
 // ============================================================
-// GET ALL STUDENTS
+// GET ALL STUDENTS — ADMIN
 // ============================================================
 
 const getAllStudents = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
+req: Request,
+res: Response,
+next: NextFunction,
 ): Promise<Response | void> => {
-  try {
-    const query = studentQuerySchema.parse(
-      req.query,
-    );
+try {
+const query = studentQuerySchema.parse(req.query);
 
-    const result =
-      await studentService.getAllStudents(query);
 
-    return sendResponse(res, {
-      statusCode: StatusCodes.OK,
-      success: true,
-      message: "Students retrieved successfully",
-      data: result,
-    });
-  } catch (error) {
-    return next(error);
-  }
+const result = await studentService.getAllStudents(query);
+
+return sendResponse(res, {
+  statusCode: StatusCodes.OK,
+  success: true,
+  message: "Students retrieved successfully",
+  data: result,
+});
+
+
+} catch (error) {
+return next(error);
+}
+};
+
+// ============================================================
+// GET FACULTY'S COURSE STUDENTS
+// ============================================================
+
+const getMyCourseStudents = async (
+req: Request,
+res: Response,
+next: NextFunction,
+): Promise<Response | void> => {
+try {
+if (!req.user?.userId) {
+throw new Error("Authenticated user information is missing");
+}
+
+
+const query = studentQuerySchema.parse(req.query);
+
+const result = await studentService.getFacultyStudents(
+  req.user.userId,
+  query,
+);
+
+return sendResponse(res, {
+  statusCode: StatusCodes.OK,
+  success: true,
+  message: "Faculty course students retrieved successfully",
+  data: result,
+});
+
+
+} catch (error) {
+return next(error);
+}
 };
 
 // ============================================================
@@ -48,223 +83,174 @@ const getAllStudents = async (
 // ============================================================
 
 const getStudentById = async (
-  req: Request<{ id: string }>,
-  res: Response,
-  next: NextFunction,
+req: Request<{ id: string }>,
+res: Response,
+next: NextFunction,
 ): Promise<Response | void> => {
-  try {
-    const { id } =
-      studentIdParamSchema.parse(req.params);
+try {
+const { id } = studentIdParamSchema.parse(req.params);
 
-    const result =
-      await studentService.getStudentById(id);
 
-    return sendResponse(res, {
-      statusCode: StatusCodes.OK,
-      success: true,
-      message: "Student retrieved successfully",
-      data: result,
-    });
-  } catch (error) {
-    return next(error);
-  }
+const result = await studentService.getStudentById(id);
+
+return sendResponse(res, {
+  statusCode: StatusCodes.OK,
+  success: true,
+  message: "Student retrieved successfully",
+  data: result,
+});
+
+
+} catch (error) {
+return next(error);
+}
 };
 
 // ============================================================
-// UPDATE STUDENT
+// UPDATE STUDENT — ADMIN
 // ============================================================
 
 const updateStudent = async (
-  req: Request<{ id: string }>,
-  res: Response,
-  next: NextFunction,
+req: Request<{ id: string }>,
+res: Response,
+next: NextFunction,
 ): Promise<Response | void> => {
-  try {
-    const { id } =
-      studentIdParamSchema.parse(req.params);
+try {
+const { id } = studentIdParamSchema.parse(req.params);
+const payload = updateStudentSchema.parse(req.body);
 
-    const payload =
-      updateStudentSchema.parse(req.body);
 
-    // --------------------------------------------------------
-    // Get old student data before update
-    // --------------------------------------------------------
+const oldStudent = await studentService.getStudentById(id);
 
-    const oldStudent =
-      await studentService.getStudentById(id);
+const result = await studentService.updateStudent(id, payload);
 
-    // --------------------------------------------------------
-    // Update student
-    // --------------------------------------------------------
+await logActivity({
+  req,
+  actorId: req.user?.userId,
+  action: AuditAction.UPDATE,
+  entity: "Student",
+  entityId: id,
+  description: "Student information updated",
 
-    const result =
-      await studentService.updateStudent(
-        id,
-        payload,
-      );
+  oldData: {
+    studentId: oldStudent.studentId,
+    semester: oldStudent.semester,
+    batch: oldStudent.batch,
+    phone: oldStudent.phone,
+    dateOfBirth: oldStudent.dateOfBirth?.toISOString() ?? null,
+    address: oldStudent.address,
 
-    // --------------------------------------------------------
-    // Audit log
-    // --------------------------------------------------------
+    department: {
+      id: oldStudent.department.id,
+      name: oldStudent.department.name,
+      code: oldStudent.department.code,
+    },
 
-    await logActivity({
-      req,
-      actorId: req.user?.userId,
+    user: {
+      id: oldStudent.user.id,
+      name: oldStudent.user.name,
+      email: oldStudent.user.email,
+      status: oldStudent.user.status,
+    },
+  },
 
-      action: AuditAction.UPDATE,
+  newData: {
+    studentId: result.studentId,
+    semester: result.semester,
+    batch: result.batch,
+    phone: result.phone,
+    dateOfBirth: result.dateOfBirth?.toISOString() ?? null,
+    address: result.address,
 
-      entity: "Student",
+    department: {
+      id: result.department.id,
+      name: result.department.name,
+      code: result.department.code,
+    },
 
-      entityId: id,
+    user: {
+      id: result.user.id,
+      name: result.user.name,
+      email: result.user.email,
+      status: result.user.status,
+    },
+  },
+});
 
-      description: "Student information updated",
+return sendResponse(res, {
+  statusCode: StatusCodes.OK,
+  success: true,
+  message: "Student updated successfully",
+  data: result,
+});
 
-      oldData: {
-        studentId: oldStudent.studentId,
 
-        semester: oldStudent.semester,
-        batch: oldStudent.batch,
-        phone: oldStudent.phone,
-
-        dateOfBirth:
-          oldStudent.dateOfBirth?.toISOString() ??
-          null,
-
-        address: oldStudent.address,
-
-        department: {
-          id: oldStudent.department.id,
-          name: oldStudent.department.name,
-          code: oldStudent.department.code,
-        },
-
-        user: {
-          id: oldStudent.user.id,
-          name: oldStudent.user.name,
-          email: oldStudent.user.email,
-          status: oldStudent.user.status,
-        },
-      },
-
-      newData: {
-        studentId: result.studentId,
-
-        semester: result.semester,
-        batch: result.batch,
-        phone: result.phone,
-
-        dateOfBirth:
-          result.dateOfBirth?.toISOString() ??
-          null,
-
-        address: result.address,
-
-        department: {
-          id: result.department.id,
-          name: result.department.name,
-          code: result.department.code,
-        },
-
-        user: {
-          id: result.user.id,
-          name: result.user.name,
-          email: result.user.email,
-          status: result.user.status,
-        },
-      },
-    });
-
-    return sendResponse(res, {
-      statusCode: StatusCodes.OK,
-      success: true,
-      message: "Student updated successfully",
-      data: result,
-    });
-  } catch (error) {
-    return next(error);
-  }
+} catch (error) {
+return next(error);
+}
 };
 
 // ============================================================
-// DELETE STUDENT - SOFT DELETE
+// DELETE STUDENT — ADMIN
 // ============================================================
 
 const deleteStudent = async (
-  req: Request<{ id: string }>,
-  res: Response,
-  next: NextFunction,
+req: Request<{ id: string }>,
+res: Response,
+next: NextFunction,
 ): Promise<Response | void> => {
-  try {
-    const { id } =
-      studentIdParamSchema.parse(req.params);
+try {
+const { id } = studentIdParamSchema.parse(req.params);
 
-    // --------------------------------------------------------
-    // Get student before soft delete
-    // --------------------------------------------------------
 
-    const student =
-      await studentService.getStudentById(id);
+const student = await studentService.getStudentById(id);
+const deletion = await studentService.deleteStudent(id);
 
-    // --------------------------------------------------------
-    // Soft delete
-    // --------------------------------------------------------
+await logActivity({
+  req,
+  actorId: req.user?.userId,
+  action: AuditAction.DELETE,
+  entity: "Student",
+  entityId: id,
+  description: "Student account soft deleted",
 
-    const deletion =
-      await studentService.deleteStudent(id);
+  oldData: {
+    studentId: student.studentId,
 
-    // --------------------------------------------------------
-    // Audit log
-    // --------------------------------------------------------
+    user: {
+      id: student.user.id,
+      name: student.user.name,
+      email: student.user.email,
+      status: student.user.status,
+    },
 
-    await logActivity({
-      req,
-      actorId: req.user?.userId,
+    department: {
+      id: student.department.id,
+      name: student.department.name,
+      code: student.department.code,
+    },
 
-      action: AuditAction.DELETE,
+    semester: student.semester,
+    batch: student.batch,
+  },
 
-      entity: "Student",
+  newData: {
+    deleted: true,
+    deletedAt: deletion.deletedAt.toISOString(),
+  },
+});
 
-      entityId: id,
+return sendResponse(res, {
+  statusCode: StatusCodes.OK,
+  success: true,
+  message: "Student deleted successfully",
+  data: null,
+});
 
-      description:
-        "Student account soft deleted",
 
-      oldData: {
-        studentId: student.studentId,
-
-        user: {
-          id: student.user.id,
-          name: student.user.name,
-          email: student.user.email,
-          status: student.user.status,
-        },
-
-        department: {
-          id: student.department.id,
-          name: student.department.name,
-          code: student.department.code,
-        },
-
-        semester: student.semester,
-        batch: student.batch,
-      },
-
-      newData: {
-        deleted: true,
-        deletedAt:
-          deletion.deletedAt.toISOString(),
-      },
-    });
-
-    return sendResponse(res, {
-      statusCode: StatusCodes.OK,
-      success: true,
-      message: "Student deleted successfully",
-      data: null,
-    });
-  } catch (error) {
-    return next(error);
-  }
+} catch (error) {
+return next(error);
+}
 };
 
 // ============================================================
@@ -272,8 +258,9 @@ const deleteStudent = async (
 // ============================================================
 
 export const studentController = {
-  getAllStudents,
-  getStudentById,
-  updateStudent,
-  deleteStudent,
+getAllStudents,
+getMyCourseStudents,
+getStudentById,
+updateStudent,
+deleteStudent,
 };

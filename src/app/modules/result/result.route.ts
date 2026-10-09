@@ -1,8 +1,12 @@
+
 import { Router } from "express";
+
 import { authenticate, authorize } from "../../middlewares/auth.js";
+
 import {
   createResult,
   deleteResult,
+  getFacultyResults,
   getMyResults,
   getResultById,
   getResults,
@@ -20,6 +24,13 @@ router.get(
   getMyResults,
 );
 
+// Faculty: results for their assigned courses only
+router.get(
+  "/my-courses",
+  authorize("FACULTY"),
+  getFacultyResults,
+);
+
 // Admin: all results
 router.get(
   "/",
@@ -34,7 +45,7 @@ router.post(
   createResult,
 );
 
-// Authenticated users: view one result
+// Authenticated users: view one result (ownership checked in controller)
 router.get(
   "/:id",
   authorize("ADMIN", "FACULTY", "STUDENT"),

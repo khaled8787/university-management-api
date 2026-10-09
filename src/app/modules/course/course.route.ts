@@ -1,8 +1,8 @@
 import { Router } from "express";
 
 import {
-  authenticate,
-  authorize,
+authenticate,
+authorize,
 } from "../../middlewares/auth.js";
 
 import { courseController } from "./course.controller.js";
@@ -11,46 +11,51 @@ const router = Router();
 
 router.use(authenticate);
 
-// Course listing: Admin, Faculty and Student
+// Faculty: only courses assigned to the logged-in faculty.
+// Keep this route before "/:id".
 router.get(
-  "/",
-  authorize("ADMIN", "FACULTY", "STUDENT"),
-  courseController.getAllCourses,
+"/my",
+authorize("FACULTY"),
+courseController.getMyCourses,
 );
 
-// Single course details: Admin, Faculty and Student
+// General course listing — existing permissions preserved.
 router.get(
-  "/:id",
-  authorize("ADMIN", "FACULTY", "STUDENT"),
-  courseController.getCourseById,
+"/",
+authorize("ADMIN", "FACULTY", "STUDENT"),
+courseController.getAllCourses,
 );
 
-// Course creation: Admin only
+// Single course details.
+router.get(
+"/:id",
+authorize("ADMIN", "FACULTY", "STUDENT"),
+courseController.getCourseById,
+);
+
+// Admin-only management.
 router.post(
-  "/",
-  authorize("ADMIN"),
-  courseController.createCourse,
+"/",
+authorize("ADMIN"),
+courseController.createCourse,
 );
 
-// Course update: Admin only
 router.patch(
-  "/:id",
-  authorize("ADMIN"),
-  courseController.updateCourse,
+"/:id",
+authorize("ADMIN"),
+courseController.updateCourse,
 );
 
-// Activate/deactivate course: Admin only
 router.patch(
-  "/:id/status",
-  authorize("ADMIN"),
-  courseController.updateCourseStatus,
+"/:id/status",
+authorize("ADMIN"),
+courseController.updateCourseStatus,
 );
 
-// Soft delete: Admin only
 router.delete(
-  "/:id",
-  authorize("ADMIN"),
-  courseController.deleteCourse,
+"/:id",
+authorize("ADMIN"),
+courseController.deleteCourse,
 );
 
 export default router;

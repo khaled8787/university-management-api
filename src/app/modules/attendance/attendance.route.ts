@@ -1,10 +1,17 @@
+
 import { Router } from "express";
-import { authenticate, authorize } from "../../middlewares/auth.js";
+
+import {
+  authenticate,
+  authorize,
+} from "../../middlewares/auth.js";
+
 import {
   createAttendance,
   deleteAttendance,
   getAttendanceById,
   getAttendances,
+  getFacultyAttendances,
   getMyAttendances,
   updateAttendance,
 } from "./attendance.controller.js";
@@ -18,6 +25,13 @@ router.get(
   "/my",
   authorize("STUDENT"),
   getMyAttendances,
+);
+
+// Faculty: attendance for their own assigned courses
+router.get(
+  "/my-courses",
+  authorize("FACULTY"),
+  getFacultyAttendances,
 );
 
 // Admin: all attendance records

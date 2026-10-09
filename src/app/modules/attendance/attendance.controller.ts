@@ -1,3 +1,4 @@
+
 import type { NextFunction, Request, Response } from "express";
 import { AuditAction } from "@prisma/client";
 import { StatusCodes } from "http-status-codes";
@@ -54,6 +55,7 @@ export const createAttendance = async (
   }
 };
 
+// Admin: all attendance records
 export const getAttendances = async (
   req: Request,
   res: Response,
@@ -62,7 +64,7 @@ export const getAttendances = async (
   try {
     const query = attendanceQuerySchema.parse(req.query);
 
-    const result = await attendanceService.getAttendances(query);
+    const result = await attendanceService.getAllAttendances(query);
 
     return sendResponse(res, {
       statusCode: StatusCodes.OK,
@@ -75,6 +77,32 @@ export const getAttendances = async (
   }
 };
 
+// Faculty: attendance records belonging only to their assigned courses
+export const getFacultyAttendances = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> => {
+  try {
+    const query = attendanceQuerySchema.parse(req.query);
+
+    const result = await attendanceService.getFacultyAttendances(
+      req.user!.userId,
+      query,
+    );
+
+    return sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: "Your course attendances retrieved successfully",
+      data: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Student: own attendance records
 export const getMyAttendances = async (
   req: Request,
   res: Response,
@@ -127,10 +155,8 @@ export const updateAttendance = async (
 ): Promise<Response | void> => {
   try {
     const { id } = attendanceIdSchema.parse(req.params);
-
     const payload = updateAttendanceSchema.parse(req.body);
 
-    // Capture the old record before updating it.
     const oldAttendance = await attendanceService.getAttendanceById(id);
 
     const result = await attendanceService.updateAttendance(
@@ -147,7 +173,6 @@ export const updateAttendance = async (
       entity: "Attendance",
       entityId: result.id,
       description: "Attendance record updated",
-
       oldData: {
         studentId: oldAttendance.studentId,
         courseId: oldAttendance.courseId,
@@ -156,7 +181,6 @@ export const updateAttendance = async (
         status: oldAttendance.status,
         remarks: oldAttendance.remarks ?? null,
       },
-
       newData: {
         studentId: result.studentId,
         courseId: result.courseId,
@@ -186,7 +210,6 @@ export const deleteAttendance = async (
   try {
     const { id } = attendanceIdSchema.parse(req.params);
 
-    // Capture the old record before soft deletion.
     const oldAttendance = await attendanceService.getAttendanceById(id);
 
     const deletedAttendance = await attendanceService.deleteAttendance(
@@ -202,7 +225,6 @@ export const deleteAttendance = async (
       entity: "Attendance",
       entityId: id,
       description: "Attendance record soft deleted",
-
       oldData: {
         studentId: oldAttendance.studentId,
         courseId: oldAttendance.courseId,
@@ -211,7 +233,6 @@ export const deleteAttendance = async (
         status: oldAttendance.status,
         remarks: oldAttendance.remarks ?? null,
       },
-
       newData: {
         deleted: true,
         deletedAt: deletedAttendance.deletedAt?.toISOString() ?? null,

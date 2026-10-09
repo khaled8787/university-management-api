@@ -1,7 +1,9 @@
+
 import { Prisma } from "@prisma/client";
 
 import prisma from "../../../config/prisma.js";
 import AppError from "../../errors/AppError.js";
+
 import type {
   StudentQueryInput,
   UpdateStudentInput,
@@ -42,76 +44,85 @@ const studentPublicSelect = {
 } satisfies Prisma.StudentSelect;
 
 // ============================================================
-// GET SINGLE STUDENT
+// GET FACULTY PROFILE
 // ============================================================
 
-const getStudentById = async (id: string) => {
-  const student = await prisma.student.findFirst({
+const getFacultyProfile = async (userId: string) => {
+  const faculty = await prisma.faculty.findFirst({
     where: {
-      id,
-
-      // Student itself must not be soft deleted
+      userId,
       deletedAt: null,
-
-      // Related user must not be soft deleted
       user: {
         deletedAt: null,
       },
-
-      // Related department must not be soft deleted
       department: {
         deletedAt: null,
       },
     },
-
-    select: studentPublicSelect,
+    select: {
+      id: true,
+    },
   });
 
-  if (!student) {
-    throw new AppError(404, "Student not found");
+  if (!faculty) {
+    throw new AppError(404, "Faculty profile not found");
   }
 
-  return student;
+  return faculty;
 };
 
 // ============================================================
-// GET ALL STUDENTS
+// COMMON STUDENT FILTERS
 // ============================================================
 
-const getAllStudents = async (
+const buildStudentWhere = (
   query: StudentQueryInput,
-) => {
+  facultyId?: string,
+): Prisma.StudentWhereInput => {
   const {
-    page,
-    limit,
     search,
     departmentId,
     semester,
-    sortBy,
-    sortOrder,
   } = query;
 
-  const skip = (page - 1) * limit;
-
-  const where: Prisma.StudentWhereInput = {
-    // Exclude soft-deleted students
+  return {
     deletedAt: null,
 
-    // Exclude soft-deleted users
     user: {
       deletedAt: null,
     },
 
-    // Exclude soft-deleted departments
     department: {
       deletedAt: null,
     },
+
+    ...(facultyId && {
+      enrollments: {
+        some: {
+          deletedAt: null,
+
+          status: {
+            in: ["APPROVED", "COMPLETED"],
+          },
+
+          course: {
+            deletedAt: null,
+            isActive: true,
+            facultyId,
+
+            department: {
+              deletedAt: null,
+            },
+          },
+        },
+      },
+    }),
 
     ...(departmentId && {
       departmentId,
     }),
 
-    ...(semester && {
+    ...(semester !== undefined && {
       semester,
     }),
 
@@ -123,7 +134,6 @@ const getAllStudents = async (
             mode: "insensitive",
           },
         },
-
         {
           user: {
             name: {
@@ -132,7 +142,6 @@ const getAllStudents = async (
             },
           },
         },
-
         {
           user: {
             email: {
@@ -144,6 +153,26 @@ const getAllStudents = async (
       ],
     }),
   };
+};
+
+// ============================================================
+// COMMON STUDENT LIST
+// ============================================================
+
+const getStudentsByFilter = async (
+  query: StudentQueryInput,
+  facultyId?: string,
+) => {
+  const {
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+  } = query;
+
+  const skip = (page - 1) * limit;
+
+  const where = buildStudentWhere(query, facultyId);
 
   let orderBy: Prisma.StudentOrderByWithRelationInput;
 
@@ -180,25 +209,70 @@ const getAllStudents = async (
       total,
       totalPages: Math.ceil(total / limit),
     },
-
     data: students,
   };
 };
 
 // ============================================================
-// UPDATE STUDENT
+// GET SINGLE STUDENT
+// ============================================================
+
+const getStudentById = async (id: string) => {
+  const student = await prisma.student.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+
+      user: {
+        deletedAt: null,
+      },
+
+      department: {
+        deletedAt: null,
+      },
+    },
+    select: studentPublicSelect,
+  });
+
+  if (!student) {
+    throw new AppError(404, "Student not found");
+  }
+
+  return student;
+};
+
+// ============================================================
+// GET ALL STUDENTS — ADMIN
+// ============================================================
+
+const getAllStudents = async (
+  query: StudentQueryInput,
+) => {
+  return getStudentsByFilter(query);
+};
+
+// ============================================================
+// GET STUDENTS ENROLLED IN FACULTY'S COURSES
+// ============================================================
+
+const getFacultyStudents = async (
+  userId: string,
+  query: StudentQueryInput,
+) => {
+  const faculty = await getFacultyProfile(userId);
+
+  return getStudentsByFilter(query, faculty.id);
+};
+
+// ============================================================
+// UPDATE STUDENT — EXISTING ADMIN FUNCTIONALITY
 // ============================================================
 
 const updateStudent = async (
   id: string,
   payload: UpdateStudentInput,
 ) => {
-  // Make sure student exists and is not deleted
   await getStudentById(id);
-
-  // ----------------------------------------------------------
-  // Validate department if departmentId is being changed
-  // ----------------------------------------------------------
 
   if (payload.departmentId) {
     const department = await prisma.department.findFirst({
@@ -206,56 +280,38 @@ const updateStudent = async (
         id: payload.departmentId,
         deletedAt: null,
       },
+      select: {
+        id: true,
+      },
     });
 
     if (!department) {
-      throw new AppError(
-        404,
-        "Department not found",
-      );
+      throw new AppError(404, "Department not found");
     }
   }
 
-  const updatedStudent = await prisma.student.update({
+  return prisma.student.update({
     where: {
       id,
     },
-
     data: payload,
-
     select: studentPublicSelect,
   });
-
-  return updatedStudent;
 };
 
 // ============================================================
-// DELETE STUDENT - SOFT DELETE
+// DELETE STUDENT — EXISTING ADMIN FUNCTIONALITY
 // ============================================================
 
 const deleteStudent = async (id: string) => {
-  // ----------------------------------------------------------
-  // Make sure student exists
-  // ----------------------------------------------------------
-
   const student = await getStudentById(id);
-
-  // ----------------------------------------------------------
-  // One timestamp for both Student and User
-  // ----------------------------------------------------------
-
   const deletedAt = new Date();
-
-  // ----------------------------------------------------------
-  // Soft delete Student + User in one transaction
-  // ----------------------------------------------------------
 
   await prisma.$transaction([
     prisma.student.update({
       where: {
         id: student.id,
       },
-
       data: {
         deletedAt,
       },
@@ -265,7 +321,6 @@ const deleteStudent = async (id: string) => {
       where: {
         id: student.user.id,
       },
-
       data: {
         deletedAt,
       },
@@ -285,6 +340,7 @@ const deleteStudent = async (id: string) => {
 export const studentService = {
   getStudentById,
   getAllStudents,
+  getFacultyStudents,
   updateStudent,
   deleteStudent,
 };

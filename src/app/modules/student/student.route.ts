@@ -1,39 +1,46 @@
 import { Router } from "express";
 
-import { authenticate, authorize } from "../../middlewares/auth.js";
+import {
+authenticate,
+authorize,
+} from "../../middlewares/auth.js";
+
 import { studentController } from "./student.controller.js";
 
 const router = Router();
 
-// All routes require authentication
 router.use(authenticate);
 
-// Admin can view all students
+// Faculty: students enrolled in their assigned courses.
 router.get(
-  "/",
-  authorize("ADMIN"),
-  studentController.getAllStudents,
+"/my-courses",
+authorize("FACULTY"),
+studentController.getMyCourseStudents,
 );
 
-// Admin can view a specific student
+// Admin-only student management — unchanged.
 router.get(
-  "/:id",
-  authorize("ADMIN"),
-  studentController.getStudentById,
+"/",
+authorize("ADMIN"),
+studentController.getAllStudents,
 );
 
-// Only Admin can update student profiles
+router.get(
+"/:id",
+authorize("ADMIN"),
+studentController.getStudentById,
+);
+
 router.patch(
-  "/:id",
-  authorize("ADMIN"),
-  studentController.updateStudent,
+"/:id",
+authorize("ADMIN"),
+studentController.updateStudent,
 );
 
-// Only Admin can soft-delete students
 router.delete(
-  "/:id",
-  authorize("ADMIN"),
-  studentController.deleteStudent,
+"/:id",
+authorize("ADMIN"),
+studentController.deleteStudent,
 );
 
 export default router;

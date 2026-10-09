@@ -1,6 +1,9 @@
+
 import { AttendanceStatus, Prisma } from "@prisma/client";
+
 import prisma from "../../../config/prisma.js";
 import AppError from "../../errors/AppError.js";
+
 import type {
   AttendanceQueryInput,
   CreateAttendanceInput,
@@ -167,7 +170,10 @@ const createAttendance = async (
 
   if (role === "ADMIN") {
     if (!course.facultyId) {
-      throw new AppError(400, "No faculty is assigned to this course");
+      throw new AppError(
+        400,
+        "No faculty is assigned to this course",
+      );
     }
 
     facultyId = course.facultyId;
@@ -185,7 +191,12 @@ const createAttendance = async (
   }
 
   const attendanceDate = new Date(payload.date);
-attendanceDate.setHours(0, 0, 0, 0);
+
+  if (Number.isNaN(attendanceDate.getTime())) {
+    throw new AppError(400, "Invalid attendance date");
+  }
+
+  attendanceDate.setHours(0, 0, 0, 0);
 
   const existingAttendance = await prisma.attendance.findFirst({
     where: {
@@ -193,6 +204,9 @@ attendanceDate.setHours(0, 0, 0, 0);
       courseId: payload.courseId,
       date: attendanceDate,
       deletedAt: null,
+    },
+    select: {
+      id: true,
     },
   });
 
@@ -216,7 +230,10 @@ attendanceDate.setHours(0, 0, 0, 0);
   });
 };
 
-const getAttendances = async (query: AttendanceQueryInput) => {
+const getAttendances = async (
+  query: AttendanceQueryInput,
+  enforcedFacultyId?: string,
+) => {
   const {
     page,
     limit,
@@ -239,9 +256,29 @@ const getAttendances = async (query: AttendanceQueryInput) => {
       courseId,
     }),
 
-    ...(facultyId && {
-      facultyId,
-    }),
+    ...(enforcedFacultyId
+      ? {
+          facultyId: enforcedFacultyId,
+          course: {
+            deletedAt: null,
+            isActive: true,
+            facultyId: enforcedFacultyId,
+            department: {
+              deletedAt: null,
+            },
+          },
+        }
+      : {
+          ...(facultyId && {
+            facultyId,
+          }),
+          course: {
+            deletedAt: null,
+            department: {
+              deletedAt: null,
+            },
+          },
+        }),
 
     ...(status && {
       status,
@@ -249,9 +286,13 @@ const getAttendances = async (query: AttendanceQueryInput) => {
 
     ...(date && {
       date: {
-  gte: new Date(new Date(date).setHours(0, 0, 0, 0)),
-  lt: new Date(new Date(date).setHours(23, 59, 59, 999)),
-},
+        gte: new Date(
+          new Date(date).setHours(0, 0, 0, 0),
+        ),
+        lt: new Date(
+          new Date(date).setHours(24, 0, 0, 0),
+        ),
+      },
     }),
 
     student: {
@@ -259,13 +300,6 @@ const getAttendances = async (query: AttendanceQueryInput) => {
       user: {
         deletedAt: null,
       },
-      department: {
-        deletedAt: null,
-      },
-    },
-
-    course: {
-      deletedAt: null,
       department: {
         deletedAt: null,
       },
@@ -307,6 +341,28 @@ const getAttendances = async (query: AttendanceQueryInput) => {
     },
     data,
   };
+};
+
+/**
+ * Admin list: preserves existing query behavior.
+ */
+const getAllAttendances = async (
+  query: AttendanceQueryInput,
+) => {
+  return getAttendances(query);
+};
+
+/**
+ * Faculty list: faculty identity is derived from the authenticated user.
+ * Client-provided facultyId cannot override this restriction.
+ */
+const getFacultyAttendances = async (
+  userId: string,
+  query: AttendanceQueryInput,
+) => {
+  const faculty = await getFacultyProfile(userId);
+
+  return getAttendances(query, faculty.id);
 };
 
 const getAttendanceById = async (id: string) => {
@@ -452,7 +508,7 @@ const updateAttendance = async (
       id,
     },
     data: {
-      ...(payload.status && {
+      ...(payload.status !== undefined && {
         status: payload.status as AttendanceStatus,
       }),
 
@@ -473,7 +529,6 @@ const deleteAttendance = async (
     where: {
       id,
       deletedAt: null,
-
       student: {
         deletedAt: null,
         user: {
@@ -483,14 +538,12 @@ const deleteAttendance = async (
           deletedAt: null,
         },
       },
-
       course: {
         deletedAt: null,
         department: {
           deletedAt: null,
         },
       },
-
       faculty: {
         deletedAt: null,
         user: {
@@ -504,6 +557,11 @@ const deleteAttendance = async (
     select: {
       id: true,
       facultyId: true,
+      course: {
+        select: {
+          facultyId: true,
+        },
+      },
     },
   });
 
@@ -514,10 +572,13 @@ const deleteAttendance = async (
   if (role !== "ADMIN") {
     const faculty = await getFacultyProfile(userId);
 
-    if (attendance.facultyId !== faculty.id) {
+    if (
+      attendance.facultyId !== faculty.id ||
+      attendance.course.facultyId !== faculty.id
+    ) {
       throw new AppError(
         403,
-        "You can delete only your own course attendance",
+        "You can delete only your assigned course attendance",
       );
     }
   }
@@ -541,6 +602,8 @@ const deleteAttendance = async (
 export const attendanceService = {
   createAttendance,
   getAttendances,
+  getAllAttendances,
+  getFacultyAttendances,
   getAttendanceById,
   getMyAttendances,
   updateAttendance,
