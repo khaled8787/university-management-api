@@ -1,5 +1,8 @@
 import {
   EnrollmentStatus,
+  PaymentMethod,
+  PaymentStatus,
+  PaymentType,
   Prisma,
 } from "@prisma/client";
 
@@ -32,7 +35,6 @@ const enrollmentPublicSelect = {
       studentId: true,
       semester: true,
       batch: true,
-
       user: {
         select: {
           id: true,
@@ -51,8 +53,8 @@ const enrollmentPublicSelect = {
       credit: true,
       semester: true,
       capacity: true,
+      fee: true,
       isActive: true,
-
       department: {
         select: {
           id: true,
@@ -64,31 +66,49 @@ const enrollmentPublicSelect = {
   },
 } satisfies Prisma.EnrollmentSelect;
 
+// Used only when creating an enrollment.
+// Returns the payment ID needed to start Stripe Checkout.
+const enrollmentWithPaymentSelect = {
+  ...enrollmentPublicSelect,
+  payments: {
+    where: {
+      status: PaymentStatus.PENDING,
+      type: PaymentType.COURSE_FEE,
+      method: PaymentMethod.STRIPE,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 1,
+    select: {
+      id: true,
+      amount: true,
+      currency: true,
+      type: true,
+      method: true,
+      status: true,
+      createdAt: true,
+    },
+  },
+} satisfies Prisma.EnrollmentSelect;
+
 // ============================================================
 // GET STUDENT PROFILE
 // ============================================================
 
-const getStudentProfile = async (
-  userId: string,
-) => {
+const getStudentProfile = async (userId: string) => {
   const student = await prisma.student.findFirst({
     where: {
       userId,
-
-      // Student must not be soft deleted
       deletedAt: null,
-
-      // User must not be soft deleted
       user: {
         deletedAt: null,
+        status: "ACTIVE",
       },
-
-      // Department must not be soft deleted
       department: {
         deletedAt: null,
       },
     },
-
     select: {
       id: true,
       studentId: true,
@@ -96,17 +116,14 @@ const getStudentProfile = async (
   });
 
   if (!student) {
-    throw new AppError(
-      404,
-      "Student profile not found",
-    );
+    throw new AppError(404, "Student profile not found");
   }
 
   return student;
 };
 
 // ============================================================
-// CREATE ENROLLMENT
+// CREATE ENROLLMENT AND PAYMENT
 // ============================================================
 
 const createEnrollment = async (
@@ -117,36 +134,24 @@ const createEnrollment = async (
 
   return prisma.$transaction(
     async (tx) => {
-      // --------------------------------------------------------
-      // Find active course
-      // --------------------------------------------------------
-
-      const course =
-        await tx.course.findFirst({
-          where: {
-            id: payload.courseId,
-
-            // Course must not be soft deleted
+      const course = await tx.course.findFirst({
+        where: {
+          id: payload.courseId,
+          deletedAt: null,
+          department: {
             deletedAt: null,
-
-            // Department must not be soft deleted
-            department: {
-              deletedAt: null,
-            },
           },
-
-          select: {
-            id: true,
-            isActive: true,
-            capacity: true,
-          },
-        });
+        },
+        select: {
+          id: true,
+          isActive: true,
+          capacity: true,
+          fee: true,
+        },
+      });
 
       if (!course) {
-        throw new AppError(
-          404,
-          "Course not found",
-        );
+        throw new AppError(404, "Course not found");
       }
 
       if (!course.isActive) {
@@ -156,25 +161,24 @@ const createEnrollment = async (
         );
       }
 
-      // --------------------------------------------------------
-      // Check existing active enrollment
-      // --------------------------------------------------------
+      if (course.fee.lessThanOrEqualTo(0)) {
+        throw new AppError(
+          400,
+          "This course does not have a valid fee configured",
+        );
+      }
 
-      const existingEnrollment =
-        await tx.enrollment.findFirst({
-          where: {
-            studentId: student.id,
-            courseId: course.id,
-
-            // Ignore soft-deleted enrollments
-            deletedAt: null,
-          },
-
-          select: {
-            id: true,
-            status: true,
-          },
-        });
+      const existingEnrollment = await tx.enrollment.findFirst({
+        where: {
+          studentId: student.id,
+          courseId: course.id,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          status: true,
+        },
+      });
 
       if (existingEnrollment) {
         throw new AppError(
@@ -183,47 +187,80 @@ const createEnrollment = async (
         );
       }
 
-      // --------------------------------------------------------
-      // Check course capacity
-      // --------------------------------------------------------
-
-      const enrolledCount =
-        await tx.enrollment.count({
-          where: {
-            courseId: course.id,
-
-            // Only active enrollments count
-            deletedAt: null,
-
-            status: EnrollmentStatus.APPROVED,
+      // Reserve capacity for pending and approved enrollments.
+      const enrolledCount = await tx.enrollment.count({
+        where: {
+          courseId: course.id,
+          deletedAt: null,
+          status: {
+            in: [
+              EnrollmentStatus.PENDING,
+              EnrollmentStatus.APPROVED,
+            ],
           },
-        });
+        },
+      });
 
       if (enrolledCount >= course.capacity) {
-        throw new AppError(
-          409,
-          "Course capacity is full",
-        );
+        throw new AppError(409, "Course capacity is full");
       }
 
-      // --------------------------------------------------------
-      // Create enrollment
-      // --------------------------------------------------------
-
       try {
-        return await tx.enrollment.create({
+        const enrollment = await tx.enrollment.create({
           data: {
             studentId: student.id,
             courseId: course.id,
             status: EnrollmentStatus.PENDING,
           },
+          select: {
+            id: true,
+            studentId: true,
+            courseId: true,
+            status: true,
+            enrolledAt: true,
+            completedAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
 
+        // Never accept the payment amount from the client.
+        // The amount comes from the database Course.fee field.
+        const payment = await tx.payment.create({
+          data: {
+            studentId: student.id,
+            enrollmentId: enrollment.id,
+            amount: course.fee,
+            currency: "BDT",
+            type: PaymentType.COURSE_FEE,
+            method: PaymentMethod.STRIPE,
+            status: PaymentStatus.PENDING,
+          },
+          select: {
+            id: true,
+            amount: true,
+            currency: true,
+            type: true,
+            method: true,
+            status: true,
+            createdAt: true,
+          },
+        });
+
+        const enrollmentDetails = await tx.enrollment.findUniqueOrThrow({
+          where: {
+            id: enrollment.id,
+          },
           select: enrollmentPublicSelect,
         });
+
+        return {
+          ...enrollmentDetails,
+          payment,
+        };
       } catch (error) {
         if (
-          error instanceof
-            Prisma.PrismaClientKnownRequestError &&
+          error instanceof Prisma.PrismaClientKnownRequestError &&
           error.code === "P2002"
         ) {
           throw new AppError(
@@ -235,7 +272,6 @@ const createEnrollment = async (
         throw error;
       }
     },
-
     {
       isolationLevel:
         Prisma.TransactionIsolationLevel.Serializable,
@@ -247,48 +283,32 @@ const createEnrollment = async (
 // GET SINGLE ENROLLMENT
 // ============================================================
 
-const getEnrollmentById = async (
-  id: string,
-) => {
-  const enrollment =
-    await prisma.enrollment.findFirst({
-      where: {
-        id,
-
-        // Enrollment must not be soft deleted
+const getEnrollmentById = async (id: string) => {
+  const enrollment = await prisma.enrollment.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+      student: {
         deletedAt: null,
-
-        // Student must not be soft deleted
-        student: {
+        user: {
           deletedAt: null,
-
-          user: {
-            deletedAt: null,
-          },
-
-          department: {
-            deletedAt: null,
-          },
         },
-
-        // Course must not be soft deleted
-        course: {
+        department: {
           deletedAt: null,
-
-          department: {
-            deletedAt: null,
-          },
         },
       },
-
-      select: enrollmentPublicSelect,
-    });
+      course: {
+        deletedAt: null,
+        department: {
+          deletedAt: null,
+        },
+      },
+    },
+    select: enrollmentPublicSelect,
+  });
 
   if (!enrollment) {
-    throw new AppError(
-      404,
-      "Enrollment not found",
-    );
+    throw new AppError(404, "Enrollment not found");
   }
 
   return enrollment;
@@ -302,8 +322,7 @@ const getMyEnrollments = async (
   userId: string,
   query: EnrollmentQueryInput,
 ) => {
-  const student =
-    await getStudentProfile(userId);
+  const student = await getStudentProfile(userId);
 
   return getEnrollments({
     ...query,
@@ -315,9 +334,7 @@ const getMyEnrollments = async (
 // GET ALL ENROLLMENTS
 // ============================================================
 
-const getEnrollments = async (
-  query: EnrollmentQueryInput,
-) => {
+const getEnrollments = async (query: EnrollmentQueryInput) => {
   const {
     page,
     limit,
@@ -330,74 +347,55 @@ const getEnrollments = async (
   const skip = (page - 1) * limit;
 
   const where: Prisma.EnrollmentWhereInput = {
-    // Exclude soft-deleted enrollments
     deletedAt: null,
-
-    // Exclude enrollments belonging to deleted students
     student: {
       deletedAt: null,
-
       user: {
         deletedAt: null,
       },
-
       department: {
         deletedAt: null,
       },
     },
-
-    // Exclude enrollments belonging to deleted courses
     course: {
       deletedAt: null,
-
       department: {
         deletedAt: null,
       },
     },
-
     ...(status && {
       status: status as EnrollmentStatus,
     }),
-
     ...(courseId && {
       courseId,
     }),
-
     ...(studentId && {
       studentId,
     }),
   };
 
-  const [total, enrollments] =
-    await prisma.$transaction([
-      prisma.enrollment.count({
-        where,
-      }),
-
-      prisma.enrollment.findMany({
-        where,
-
-        skip,
-        take: limit,
-
-        orderBy: {
-          createdAt: sortOrder,
-        },
-
-        select: enrollmentPublicSelect,
-      }),
-    ]);
+  const [total, enrollments] = await prisma.$transaction([
+    prisma.enrollment.count({
+      where,
+    }),
+    prisma.enrollment.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: {
+        createdAt: sortOrder,
+      },
+      select: enrollmentPublicSelect,
+    }),
+  ]);
 
   return {
     meta: {
       page,
       limit,
       total,
-      totalPages: Math.ceil(
-        total / limit,
-      ),
+      totalPages: Math.ceil(total / limit),
     },
-
     data: enrollments,
   };
 };
@@ -410,67 +408,73 @@ const updateEnrollmentStatus = async (
   id: string,
   payload: UpdateEnrollmentStatusInput,
 ) => {
-  const enrollment =
-    await prisma.enrollment.findFirst({
+  const targetStatus = payload.status as EnrollmentStatus;
+
+  return prisma.$transaction(async (tx) => {
+    const enrollment = await tx.enrollment.findFirst({
       where: {
         id,
-
-        // Cannot update a soft-deleted enrollment
         deletedAt: null,
-
-        // Student must still be active
         student: {
           deletedAt: null,
-
           user: {
             deletedAt: null,
           },
         },
-
-        // Course must still be active
         course: {
           deletedAt: null,
         },
       },
-
       select: {
         id: true,
         status: true,
       },
     });
 
-  if (!enrollment) {
-    throw new AppError(
-      404,
-      "Enrollment not found",
-    );
-  }
+    if (!enrollment) {
+      throw new AppError(404, "Enrollment not found");
+    }
 
-  if (
-    enrollment.status !==
-    EnrollmentStatus.PENDING
-  ) {
-    throw new AppError(
-      400,
-      "Only pending enrollments can be reviewed",
-    );
-  }
+    if (enrollment.status !== EnrollmentStatus.PENDING) {
+      throw new AppError(
+        400,
+        "Only pending enrollments can be reviewed",
+      );
+    }
 
-  const updatedEnrollment =
-    await prisma.enrollment.update({
+    // Enrollment approval must follow a successful payment.
+    // The Stripe webhook will also approve the enrollment
+    // after verifying the payment with the provider.
+    if (targetStatus === EnrollmentStatus.APPROVED) {
+      const paidPayment = await tx.payment.findFirst({
+        where: {
+          enrollmentId: id,
+          status: PaymentStatus.PAID,
+          type: PaymentType.COURSE_FEE,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!paidPayment) {
+        throw new AppError(
+          400,
+          "Enrollment cannot be approved before course fee payment is completed",
+        );
+      }
+    }
+
+    return tx.enrollment.update({
       where: {
         id,
       },
-
       data: {
-        status:
-          payload.status as EnrollmentStatus,
+        status: targetStatus,
       },
-
       select: enrollmentPublicSelect,
     });
-
-  return updatedEnrollment;
+  });
 };
 
 // ============================================================
@@ -481,59 +485,59 @@ const cancelMyEnrollment = async (
   userId: string,
   id: string,
 ) => {
-  const student =
-    await getStudentProfile(userId);
+  const student = await getStudentProfile(userId);
 
-  const enrollment =
-    await prisma.enrollment.findFirst({
+  return prisma.$transaction(async (tx) => {
+    const enrollment = await tx.enrollment.findFirst({
       where: {
         id,
-
         studentId: student.id,
-
-        // Cannot cancel soft-deleted enrollment
         deletedAt: null,
-
-        // Course must still exist
         course: {
           deletedAt: null,
         },
       },
-
       select: {
         id: true,
         status: true,
       },
     });
 
-  if (!enrollment) {
-    throw new AppError(
-      404,
-      "Enrollment not found",
-    );
-  }
+    if (!enrollment) {
+      throw new AppError(404, "Enrollment not found");
+    }
 
-  if (
-    enrollment.status !==
-    EnrollmentStatus.PENDING
-  ) {
-    throw new AppError(
-      400,
-      "Only pending enrollments can be cancelled",
-    );
-  }
+    if (enrollment.status !== EnrollmentStatus.PENDING) {
+      throw new AppError(
+        400,
+        "Only pending enrollments can be cancelled",
+      );
+    }
 
-  await prisma.enrollment.update({
-    where: {
-      id,
-    },
+    // Cancel outstanding payments so they cannot be used
+    // to approve a cancelled enrollment later.
+    await tx.payment.updateMany({
+      where: {
+        enrollmentId: enrollment.id,
+        status: PaymentStatus.PENDING,
+      },
+      data: {
+        status: PaymentStatus.CANCELLED,
+        failureReason: "Enrollment cancelled by student",
+      },
+    });
 
-    data: {
-      status: EnrollmentStatus.DROPPED,
-    },
+    await tx.enrollment.update({
+      where: {
+        id: enrollment.id,
+      },
+      data: {
+        status: EnrollmentStatus.DROPPED,
+      },
+    });
+
+    return null;
   });
-
-  return null;
 };
 
 // ============================================================

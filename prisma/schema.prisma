@@ -187,7 +187,7 @@ model Faculty {
   departmentId String
 
   designation    String
-  phone         String?
+  phone          String?
   specialization String?
 
   deletedAt DateTime?
@@ -218,6 +218,9 @@ model Course {
   title       String
   description String?
   credit      Float
+
+  // Course fee in BDT; backend must use this value for payment.
+  fee Decimal @default(0) @db.Decimal(12, 2)
 
   departmentId String
   facultyId    String?
@@ -271,6 +274,9 @@ model Enrollment {
   student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
   course  Course  @relation(fields: [courseId], references: [id], onDelete: Restrict)
 
+  // An enrollment may have multiple payment attempts.
+  payments Payment[]
+
   @@index([studentId])
   @@index([courseId])
   @@index([status])
@@ -303,14 +309,13 @@ model Attendance {
   course  Course  @relation(fields: [courseId], references: [id], onDelete: Restrict)
   faculty Faculty @relation(fields: [facultyId], references: [id], onDelete: Restrict)
 
-  
   @@index([studentId])
-@@index([courseId])
-@@index([facultyId])
-@@index([date])
-@@index([status])
-@@index([deletedAt])
-@@index([studentId, courseId, date, deletedAt])
+  @@index([courseId])
+  @@index([facultyId])
+  @@index([date])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([studentId, courseId, date, deletedAt])
 }
 
 // ============================================================
@@ -354,7 +359,8 @@ model Result {
 model Payment {
   id String @id @default(cuid())
 
-  studentId String
+  studentId    String
+  enrollmentId String?
 
   amount   Decimal @db.Decimal(12, 2)
   currency String  @default("BDT")
@@ -376,7 +382,11 @@ model Payment {
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
 
+  // Nullable to preserve compatibility with existing non-enrollment payments.
+  enrollment Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+
   @@index([studentId])
+  @@index([enrollmentId])
   @@index([status])
   @@index([type])
   @@index([createdAt])
