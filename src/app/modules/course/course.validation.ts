@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 export const courseIdParamSchema = z.object({
@@ -17,6 +18,12 @@ export const createCourseSchema = z.object({
   description: z.string().trim().max(1000).optional(),
 
   credit: z.number().positive().max(20),
+
+  fee: z
+    .number()
+    .finite()
+    .positive("Course fee must be greater than 0")
+    .max(10000000, "Course fee cannot exceed 10000000"),
 
   departmentId: z.string().trim().min(1),
 
@@ -42,6 +49,13 @@ export const updateCourseSchema = z
     description: z.string().trim().max(1000).nullable().optional(),
 
     credit: z.number().positive().max(20).optional(),
+
+    fee: z
+      .number()
+      .finite()
+      .positive("Course fee must be greater than 0")
+      .max(10000000, "Course fee cannot exceed 10000000")
+      .optional(),
 
     departmentId: z.string().trim().min(1).optional(),
 
