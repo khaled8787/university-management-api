@@ -668,6 +668,15 @@ export const createStripeCheckoutSession = async (
 
   const frontendUrl = getFrontendUrl();
 
+ console.log("Checkout payment ID:", payment.id);
+console.log("Checkout transaction ID:", payment.transactionId);
+console.log("Checkout metadata:", {
+  paymentId: payment.id,
+  studentId: student.id,
+  transactionId: payment.transactionId,
+  enrollmentId: payment.enrollmentId ?? "",
+});
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card"],
