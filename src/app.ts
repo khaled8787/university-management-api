@@ -9,6 +9,7 @@ import globalErrorHandler from "./app/errors/globalErrorHandler.js";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger.js";
 const app: Application = express();
+app.set("trust proxy", 1);
 
 app.use(helmet());
 
