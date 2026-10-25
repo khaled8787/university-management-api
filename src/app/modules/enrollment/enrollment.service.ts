@@ -8,7 +8,7 @@ import {
 
 import prisma from "../../../config/prisma.js";
 import AppError from "../../errors/AppError.js";
-
+import { generateTransactionId } from "../../utils/generateTransactionId.js";
 import type {
   CreateEnrollmentInput,
   EnrollmentQueryInput,
@@ -227,25 +227,26 @@ const createEnrollment = async (
         // Never accept the payment amount from the client.
         // The amount comes from the database Course.fee field.
         const payment = await tx.payment.create({
-          data: {
-            studentId: student.id,
-            enrollmentId: enrollment.id,
-            amount: course.fee,
-            currency: "BDT",
-            type: PaymentType.COURSE_FEE,
-            method: PaymentMethod.STRIPE,
-            status: PaymentStatus.PENDING,
-          },
-          select: {
-            id: true,
-            amount: true,
-            currency: true,
-            type: true,
-            method: true,
-            status: true,
-            createdAt: true,
-          },
-        });
+  data: {
+    studentId: student.id,
+    enrollmentId: enrollment.id,
+    amount: course.fee,
+    currency: "BDT",
+    type: PaymentType.COURSE_FEE,
+    method: PaymentMethod.STRIPE,
+    status: PaymentStatus.PENDING,
+    transactionId: generateTransactionId(),
+  },
+  select: {
+    id: true,
+    amount: true,
+    currency: true,
+    type: true,
+    method: true,
+    status: true,
+    createdAt: true,
+  },
+});
 
         const enrollmentDetails = await tx.enrollment.findUniqueOrThrow({
           where: {
